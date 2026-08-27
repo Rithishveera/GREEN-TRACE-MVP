@@ -3,18 +3,29 @@ import json
 import asyncio
 import logging
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional
 
-from sqlmodel import Session, select
-from db.session import engine
-from models.db_models import Run
-from models.schemas import AgentResult, ConfidenceScore
-from core.state_machine import RunState, validate_transition
-from agents.agent1_paralegal import run_agent1_paralegal
-from agents.agent2_legal_validator import run_agent2_legal_validator
-from agents.agent3_geospatial import run_agent3_geospatial
-from agents.agent4_satellite import run_agent4_satellite
-from services.pdf_generator import generate_dossier_pdf
+try:
+    from sqlmodel import Session, select
+    from db.session import engine
+    from models.db_models import Run
+    from models.schemas import AgentResult, ConfidenceScore
+    from core.state_machine import RunState, validate_transition
+    from agents.agent1_paralegal import run_agent1_paralegal
+    from agents.agent2_legal_validator import run_agent2_legal_validator
+    from agents.agent3_geospatial import run_agent3_geospatial
+    from agents.agent4_satellite import run_agent4_satellite
+    from services.pdf_generator import generate_dossier_pdf
+except (ImportError, ModuleNotFoundError):
+    from backend.db.session import engine  # type: ignore
+    from backend.models.db_models import Run  # type: ignore
+    from backend.models.schemas import AgentResult, ConfidenceScore  # type: ignore
+    from backend.core.state_machine import RunState, validate_transition  # type: ignore
+    from backend.agents.agent1_paralegal import run_agent1_paralegal  # type: ignore
+    from backend.agents.agent2_legal_validator import run_agent2_legal_validator  # type: ignore
+    from backend.agents.agent3_geospatial import run_agent3_geospatial  # type: ignore
+    from backend.agents.agent4_satellite import run_agent4_satellite  # type: ignore
+    from backend.services.pdf_generator import generate_dossier_pdf  # type: ignore
 
 logger = logging.getLogger(__name__)
 

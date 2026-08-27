@@ -1,8 +1,13 @@
 import logging
 from typing import Any, Dict, Optional
 from datetime import datetime, timezone
-from models.schemas import AgentResult, Agent4Data, EvidenceItem
-from services.gee_client import GEEClient
+
+try:
+    from models.schemas import AgentResult, Agent4Data, EvidenceItem
+    from services.gee_client import GEEClient
+except (ImportError, ModuleNotFoundError):
+    from backend.models.schemas import AgentResult, Agent4Data, EvidenceItem  # type: ignore
+    from backend.services.gee_client import GEEClient  # type: ignore
 
 logger = logging.getLogger(__name__)
 

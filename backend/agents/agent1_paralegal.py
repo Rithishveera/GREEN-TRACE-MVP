@@ -1,8 +1,13 @@
 import logging
 from typing import Optional
 from datetime import datetime, timezone
-from models.schemas import AgentResult, Agent1Data, ECCondition, EvidenceItem
-from services.llm_client import LLMClient
+
+try:
+    from models.schemas import AgentResult, Agent1Data, ECCondition, EvidenceItem
+    from services.llm_client import LLMClient
+except (ImportError, ModuleNotFoundError):
+    from backend.models.schemas import AgentResult, Agent1Data, ECCondition, EvidenceItem  # type: ignore
+    from backend.services.llm_client import LLMClient  # type: ignore
 
 logger = logging.getLogger(__name__)
 

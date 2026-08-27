@@ -6,8 +6,12 @@ from shapely.geometry import mapping, LineString, Polygon, Point
 from shapely.ops import transform, unary_union
 import pyproj
 
-from models.schemas import AgentResult, Agent3Data, EvidenceItem
-from services.overpass_client import OverpassClient
+try:
+    from models.schemas import AgentResult, Agent3Data, EvidenceItem
+    from services.overpass_client import OverpassClient
+except (ImportError, ModuleNotFoundError):
+    from backend.models.schemas import AgentResult, Agent3Data, EvidenceItem  # type: ignore
+    from backend.services.overpass_client import OverpassClient  # type: ignore
 
 logger = logging.getLogger(__name__)
 

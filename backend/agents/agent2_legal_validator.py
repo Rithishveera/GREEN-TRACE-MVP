@@ -1,8 +1,13 @@
 import logging
 from typing import Optional
 from datetime import datetime, timezone
-from models.schemas import AgentResult, Agent2Data, EvidenceItem
-from services.parivesh_client import PariveshClient
+
+try:
+    from models.schemas import AgentResult, Agent2Data, EvidenceItem
+    from services.parivesh_client import PariveshClient
+except (ImportError, ModuleNotFoundError):
+    from backend.models.schemas import AgentResult, Agent2Data, EvidenceItem  # type: ignore
+    from backend.services.parivesh_client import PariveshClient  # type: ignore
 
 logger = logging.getLogger(__name__)
 
