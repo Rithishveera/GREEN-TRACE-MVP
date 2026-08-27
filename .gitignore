@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
+.venv
+venv/
+ENV/
+
+# Secrets
+backend/secrets/
+backend/.env
+frontend/.env
+
+# Storage files (runtime generated)
+backend/storage/uploads/*
+backend/storage/thumbnails/*
+backend/storage/dossiers/*
+!backend/storage/uploads/.gitkeep
+!backend/storage/thumbnails/.gitkeep
+!backend/storage/dossiers/.gitkeep
+greentrace.db
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp

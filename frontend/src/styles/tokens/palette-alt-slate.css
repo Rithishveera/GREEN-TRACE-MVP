@@ -1,0 +1,32 @@
+[data-theme="slate"] {
+  --bg-app: #0a0e14;
+  --bg-surface: #101620;
+  --bg-surface-elevated: #1b2432;
+  --bg-surface-subtle: #141c29;
+  --bg-card: rgba(16, 22, 32, 0.85);
+  --bg-card-hover: rgba(27, 36, 50, 0.95);
+
+  --border-subtle: rgba(148, 163, 184, 0.12);
+  --border-medium: rgba(148, 163, 184, 0.22);
+  --border-focus: #38bdf8;
+
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-inverse: #0a0e14;
+
+  --primary: #38bdf8;
+  --primary-hover: #0284c7;
+  --primary-glow: rgba(56, 189, 248, 0.28);
+  --primary-light: #f0f9ff;
+  --primary-surface: rgba(56, 189, 248, 0.12);
+
+  --status-success: #34d399;
+  --status-success-bg: rgba(52, 211, 153, 0.15);
+  --status-warning: #fbbf24;
+  --status-warning-bg: rgba(251, 191, 36, 0.15);
+  --status-danger: #fb7185;
+  --status-danger-bg: rgba(251, 113, 133, 0.15);
+  --status-info: #60a5fa;
+  --status-info-bg: rgba(96, 165, 250, 0.15);
+}
