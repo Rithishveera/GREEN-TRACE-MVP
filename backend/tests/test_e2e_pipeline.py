@@ -38,8 +38,10 @@ def test_full_e2e_pipeline():
     max_wait_seconds = 25
     start_time = time.time()
     final_state = None
-    
+    run_data: dict = {}
+
     while time.time() - start_time < max_wait_seconds:
+
         status_res = client.get(f"/api/status/{run_id}")
         assert status_res.status_code == 200
         run_data = status_res.json()

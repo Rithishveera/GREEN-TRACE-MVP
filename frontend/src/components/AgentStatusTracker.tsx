@@ -1,229 +1,275 @@
 import React, { useState } from 'react';
-import { 
-  FileSearch, 
-  ShieldCheck, 
-  Compass, 
-  Satellite, 
-  CheckCircle, 
-  Clock, 
-  AlertTriangle, 
-  XCircle, 
-  ChevronRight,
-  Layers,
-  Database
+import {
+  FileSearch, ShieldCheck, Compass, Satellite,
+  CheckCircle2, Clock, AlertTriangle, XCircle,
+  ChevronDown, ChevronUp, Copy, Check, Activity
 } from 'lucide-react';
 import { RunStatusResponse, AgentResult } from '../types/schemas';
 
-interface AgentStatusTrackerProps {
-  status: RunStatusResponse;
-}
+interface Props { status: RunStatusResponse; }
 
-export const AgentStatusTracker: React.FC<AgentStatusTrackerProps> = ({ status }) => {
-  const [selectedAgent, setSelectedAgent] = useState<AgentResult | null>(null);
+const AGENTS = [
+  {
+    key: 'agent1' as const,
+    num: 1,
+    label: 'Paralegal Extractor',
+    desc: 'Reads the EC PDF, extracts project name, file number, coordinates, EC date and all environmental conditions using Gemini LLM + Regex.',
+    icon: FileSearch,
+    color: '#3b82f6',
+    runningState: 'ingested',
+  },
+  {
+    key: 'agent2' as const,
+    num: 2,
+    label: 'Legal Validator',
+    desc: 'Queries PARIVESH portal registry to verify clearance status, tracks amendment history and flags discrepancies.',
+    icon: ShieldCheck,
+    color: '#8b5cf6',
+    runningState: 'processing',
+  },
+  {
+    key: 'agent3' as const,
+    num: 3,
+    label: 'Geospatial Scout',
+    desc: 'Fetches real OSM waterbody geometry via Overpass API and applies exact UTM metric buffer calculations.',
+    icon: Compass,
+    color: '#f59e0b',
+    runningState: 'processing',
+  },
+  {
+    key: 'agent4' as const,
+    num: 4,
+    label: 'Satellite Analyst',
+    desc: 'Runs Sentinel-2 NDBI spectral delta across the buffer zone, calculating m² of built-up encroachment post-clearance.',
+    icon: Satellite,
+    color: '#10b981',
+    runningState: 'processing',
+  },
+];
 
-  const agents = [
-    {
-      id: 'agent1',
-      name: 'Agent 1 — Paralegal Extractor',
-      desc: 'LLM & Regex extraction of project clauses & coordinates',
-      icon: FileSearch,
-      result: status.agent1,
-      running: status.state === 'ingested',
-    },
-    {
-      id: 'agent2',
-      name: 'Agent 2 — Legal Validator',
-      desc: 'PARIVESH portal registry & amendment verification',
-      icon: ShieldCheck,
-      result: status.agent2,
-      running: status.state === 'agent1_done' || (status.state === 'processing' && !status.agent2),
-    },
-    {
-      id: 'agent3',
-      name: 'Agent 3 — Geospatial Scout',
-      desc: 'Overpass OSM waterbody geometry & UTM metric buffer',
-      icon: Compass,
-      result: status.agent3,
-      running: status.state === 'agent1_done' || (status.state === 'processing' && !status.agent3),
-    },
-    {
-      id: 'agent4',
-      name: 'Agent 4 — Satellite Analyst',
-      desc: 'Sentinel-2/SAR fallback chain & NDBI spectral delta',
-      icon: Satellite,
-      result: status.agent4,
-      running: status.state === 'processing' && status.agent3 && !status.agent4,
-    },
-  ];
+const confidenceBand = (c: number) => {
+  if (c >= 0.85) return { label: 'High', color: '#10b981', bg: 'rgba(16,185,129,0.1)' };
+  if (c >= 0.65) return { label: 'Medium', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' };
+  return { label: 'Low', color: '#ef4444', bg: 'rgba(239,68,68,0.1)' };
+};
 
-  const getStatusBadge = (agentRes?: AgentResult, isRunning?: boolean) => {
-    if (isRunning) {
-      return (
-        <span className="badge badge-info animate-pulse-subtle">
-          <Clock className="w-3 h-3 animate-spin" /> In Progress
-        </span>
-      );
-    }
-    if (!agentRes) {
-      return (
-        <span className="badge" style={{ background: 'rgba(100, 116, 139, 0.2)', color: '#94a3b8' }}>
-          Queued
-        </span>
-      );
-    }
-    if (agentRes.status === 'success') {
-      return (
-        <span className="badge badge-success">
-          <CheckCircle className="w-3 h-3" /> Validated ({Math.round(agentRes.confidence * 100)}%)
-        </span>
-      );
-    }
-    if (agentRes.status === 'flagged') {
-      return (
-        <span className="badge badge-warning">
-          <AlertTriangle className="w-3 h-3" /> Review Flag ({Math.round(agentRes.confidence * 100)}%)
-        </span>
-      );
-    }
-    return (
-      <span className="badge badge-danger">
-        <XCircle className="w-3 h-3" /> Failed
-      </span>
-    );
+const AgentCard: React.FC<{
+  agent: typeof AGENTS[0];
+  result?: AgentResult;
+  isRunning: boolean;
+}> = ({ agent, result, isRunning }) => {
+  const [expanded, setExpanded] = useState(false);
+  const [copied, setCopied] = useState<number | null>(null);
+  const Icon = agent.icon;
+
+  const copyRef = (txt: string, i: number) => {
+    navigator.clipboard.writeText(txt);
+    setCopied(i);
+    setTimeout(() => setCopied(null), 1500);
   };
 
+  let status: 'done' | 'running' | 'pending' | 'error' | 'flagged' = 'pending';
+  if (result) {
+    status = result.status === 'failed' ? 'error' : result.status === 'flagged' ? 'flagged' : 'done';
+  } else if (isRunning) {
+    status = 'running';
+  }
+
+  const statusMeta = {
+    done:    { label: 'Complete',  color: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)', Icon: CheckCircle2 },
+    flagged: { label: 'Flagged',   color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)', Icon: AlertTriangle },
+    running: { label: 'Running…',  color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.25)', Icon: Activity },
+    pending: { label: 'Queued',    color: '#475569', bg: 'rgba(71,85,105,0.08)',   border: 'rgba(71,85,105,0.15)',   Icon: Clock },
+    error:   { label: 'Error',     color: '#ef4444', bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.2)',  Icon: XCircle },
+  }[status];
+
+  const cb = result ? confidenceBand(result.confidence) : null;
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-            <Layers className="w-5 h-5 text-emerald-400" />
-            Autonomous Multi-Agent Pipeline
-          </h3>
-          <p className="text-xs text-slate-400">
-            Real-time execution status and verifiable evidence provenance trail.
-          </p>
+    <div style={{
+      background: 'rgba(15,23,42,0.8)',
+      border: `1px solid ${result ? `${agent.color}20` : 'rgba(255,255,255,0.06)'}`,
+      borderRadius: 14, overflow: 'hidden',
+      transition: 'border-color 0.2s',
+    }}>
+      {/* Card header */}
+      <div
+        style={{
+          padding: '16px 18px',
+          display: 'flex', alignItems: 'center', gap: 14,
+          cursor: result ? 'pointer' : 'default',
+        }}
+        onClick={() => result && setExpanded(v => !v)}
+      >
+        {/* Agent icon */}
+        <div style={{
+          width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+          background: result ? `${agent.color}15` : 'rgba(30,41,59,0.5)',
+          border: `1px solid ${result ? `${agent.color}30` : 'rgba(255,255,255,0.06)'}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          position: 'relative',
+        }}>
+          {isRunning ? (
+            <div style={{
+              width: 22, height: 22,
+              border: `2px solid ${agent.color}40`,
+              borderTopColor: agent.color,
+              borderRadius: '50%',
+              animation: 'spin 0.8s linear infinite',
+            }} />
+          ) : (
+            <Icon size={20} style={{ color: result ? agent.color : '#334155' }} />
+          )}
+          {/* Step number */}
+          <div style={{
+            position: 'absolute', bottom: -4, right: -4,
+            width: 16, height: 16, borderRadius: '50%',
+            background: result ? agent.color : '#1e293b',
+            border: '1.5px solid #060d1a',
+            fontSize: '0.6rem', fontWeight: 800, color: result ? '#fff' : '#475569',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            {agent.num}
+          </div>
         </div>
 
-        {status.confidence_band && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700">
-            <span className="text-xs font-semibold text-slate-400">Confidence Band:</span>
-            <span
-              className={`badge ${
-                status.confidence_band === 'green'
-                  ? 'badge-success'
-                  : status.confidence_band === 'yellow'
-                  ? 'badge-warning'
-                  : 'badge-danger'
-              }`}
-            >
-              ● {status.confidence_band.toUpperCase()}
+        {/* Name + desc */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: '0.88rem', fontWeight: 700, color: result ? '#f1f5f9' : '#475569', marginBottom: 3 }}>
+            {agent.label}
+          </div>
+          <div style={{ fontSize: '0.75rem', color: '#334155', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {agent.desc}
+          </div>
+        </div>
+
+        {/* Status + confidence */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          {cb && (
+            <div style={{
+              fontSize: '0.7rem', fontWeight: 700, padding: '3px 9px',
+              borderRadius: 99, color: cb.color, background: cb.bg,
+            }}>
+              {Math.round(result!.confidence * 100)}%
+            </div>
+          )}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            fontSize: '0.7rem', fontWeight: 700, padding: '3px 9px', borderRadius: 99,
+            letterSpacing: '0.04em', textTransform: 'uppercase',
+            color: statusMeta.color, background: statusMeta.bg, border: `1px solid ${statusMeta.border}`,
+          }}>
+            {isRunning && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#3b82f6', animation: 'pulse-ring 1.2s infinite' }} />}
+            {statusMeta.label}
+          </div>
+          {result && (
+            expanded ? <ChevronUp size={14} style={{ color: '#475569' }} /> : <ChevronDown size={14} style={{ color: '#475569' }} />
+          )}
+        </div>
+      </div>
+
+      {/* Warnings strip */}
+      {result?.warnings && result.warnings.length > 0 && (
+        <div style={{
+          margin: '0 18px 12px', padding: '8px 12px', borderRadius: 8,
+          background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)',
+        }}>
+          {result.warnings.map((w, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: '0.75rem', color: '#d97706', lineHeight: 1.5 }}>
+              <AlertTriangle size={12} style={{ marginTop: 2, flexShrink: 0 }} />
+              {w}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Expanded evidence */}
+      {expanded && result && (
+        <div style={{
+          borderTop: '1px solid rgba(255,255,255,0.05)',
+          padding: '14px 18px',
+          animation: 'fadeIn 0.2s ease',
+        }}>
+          {result.evidence.map((ev, i) => (
+            <div key={i} style={{
+              marginBottom: i < result.evidence.length - 1 ? 10 : 0,
+              padding: '10px 12px', borderRadius: 8,
+              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {ev.source}
+                </span>
+                <button
+                  onClick={() => copyRef(ev.raw_reference, i)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    fontSize: '0.7rem', color: copied === i ? '#10b981' : '#475569',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    transition: 'color 0.15s',
+                  }}
+                >
+                  {copied === i ? <Check size={11} /> : <Copy size={11} />}
+                  {copied === i ? 'Copied' : 'Copy ref'}
+                </button>
+              </div>
+              <p style={{ fontSize: '0.78rem', color: '#94a3b8', fontFamily: 'JetBrains Mono, monospace', lineHeight: 1.5, wordBreak: 'break-all' }}>
+                {ev.raw_reference}
+              </p>
+              <div style={{ marginTop: 6, fontSize: '0.68rem', color: '#334155', fontFamily: 'JetBrains Mono, monospace' }}>
+                {ev.timestamp.slice(0, 19).replace('T', ' ')} UTC
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export const AgentStatusTracker: React.FC<Props> = ({ status }) => {
+  const overallBand = status.confidence_band;
+
+  return (
+    <div>
+      {/* Overall confidence */}
+      {overallBand && (
+        <div style={{
+          marginBottom: 20, padding: '14px 18px',
+          background: overallBand === 'green' ? 'rgba(16,185,129,0.06)' : overallBand === 'yellow' ? 'rgba(245,158,11,0.06)' : 'rgba(239,68,68,0.06)',
+          border: `1px solid ${overallBand === 'green' ? 'rgba(16,185,129,0.2)' : overallBand === 'yellow' ? 'rgba(245,158,11,0.2)' : 'rgba(239,68,68,0.2)'}`,
+          borderRadius: 12, display: 'flex', alignItems: 'center', gap: 12,
+        }}>
+          <div style={{
+            width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
+            background: overallBand === 'green' ? '#10b981' : overallBand === 'yellow' ? '#f59e0b' : '#ef4444',
+          }} />
+          <div>
+            <span style={{
+              fontSize: '0.8rem', fontWeight: 700,
+              color: overallBand === 'green' ? '#10b981' : overallBand === 'yellow' ? '#f59e0b' : '#ef4444',
+            }}>
+              {overallBand === 'green' ? 'High Confidence Audit' : overallBand === 'yellow' ? 'Medium Confidence — Review Recommended' : 'Low Confidence — Expert Review Required'}
             </span>
-          </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {agents.map((a) => {
-          const Icon = a.icon;
-          return (
-            <div
-              key={a.id}
-              onClick={() => a.result && setSelectedAgent(a.result)}
-              className={`glass-panel p-4 rounded-xl transition-all cursor-pointer relative overflow-hidden ${
-                selectedAgent?.agent === a.result?.agent
-                  ? 'border-emerald-500 ring-1 ring-emerald-500/50'
-                  : 'hover:border-slate-600'
-              } ${a.running ? 'border-sky-500/50 bg-sky-950/10' : ''}`}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="p-2.5 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-200">
-                  <Icon className="w-5 h-5 text-emerald-400" />
-                </div>
-                {getStatusBadge(a.result, a.running)}
-              </div>
-
-              <h4 className="font-bold text-sm text-slate-100 mb-1">{a.name}</h4>
-              <p className="text-xs text-slate-400 leading-relaxed mb-3">{a.desc}</p>
-
-              {a.result && (
-                <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs text-emerald-400 font-medium">
-                  <span>{a.result.evidence.length} Evidence Trace{a.result.evidence.length > 1 ? 's' : ''}</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Evidence Inspection Modal / Drawer */}
-      {selectedAgent && (
-        <div className="glass-panel p-6 border-emerald-500/40 bg-slate-900/95 relative animate-in fade-in duration-200">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400">
-                <Database className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="font-bold text-slate-100 text-base capitalize">
-                  {selectedAgent.agent.replace('_', ' ')} — Evidence Provenance
-                </h4>
-                <p className="text-xs text-slate-400">
-                  Verifiable agent observations and raw references.
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setSelectedAgent(null)}
-              className="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
-            >
-              Close Inspector
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            {selectedAgent.warnings.length > 0 && (
-              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs space-y-1">
-                <div className="font-bold flex items-center gap-1.5">
-                  <AlertTriangle className="w-3.5 h-3.5" /> Agent Warnings:
-                </div>
-                {selectedAgent.warnings.map((w, i) => (
-                  <div key={i} className="pl-5">• {w}</div>
-                ))}
-              </div>
-            )}
-
-            <div>
-              <h5 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                Evidence Items ({selectedAgent.evidence.length})
-              </h5>
-              <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                {selectedAgent.evidence.map((ev, i) => (
-                  <div
-                    key={i}
-                    className="p-3 rounded-lg bg-slate-950/80 border border-slate-800 text-xs space-y-1.5"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-emerald-300">{ev.source}</span>
-                      <span className="text-slate-500 font-mono text-[11px]">{ev.timestamp.slice(0, 19)}</span>
-                    </div>
-                    <div className="text-slate-300">
-                      <span className="text-slate-500">Reference:</span> <span className="font-mono text-slate-200">{ev.raw_reference}</span>
-                    </div>
-                    {ev.details && (
-                      <div className="p-2 rounded bg-slate-900 font-mono text-[11px] text-slate-400 overflow-x-auto">
-                        <pre>{JSON.stringify(ev.details, null, 2)}</pre>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
+            <span style={{ fontSize: '0.78rem', color: '#475569', marginLeft: 10 }}>
+              Confidence band: <strong style={{ color: '#94a3b8', textTransform: 'uppercase' }}>{overallBand}</strong>
+            </span>
           </div>
         </div>
       )}
+
+      {/* Agent cards */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {AGENTS.map(agent => (
+          <AgentCard
+            key={agent.key}
+            agent={agent}
+            result={status[agent.key]}
+            isRunning={!status[agent.key] && status.state === agent.runningState}
+          />
+
+        ))}
+      </div>
     </div>
   );
 };

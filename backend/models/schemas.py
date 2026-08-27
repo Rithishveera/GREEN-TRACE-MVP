@@ -72,7 +72,9 @@ class Agent4Data(BaseModel):
     pre_ec_thumbnail_url: str = ""
     post_ec_thumbnail_url: str = ""
     change_heatmap_url: Optional[str] = ""
+    spectral_layers: Optional[List[Dict[str, Any]]] = Field(default_factory=list)
     notes: Optional[str] = None
+
 
 
 class AgentResult(BaseModel):

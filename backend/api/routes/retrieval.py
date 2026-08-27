@@ -5,7 +5,8 @@ from pathlib import Path
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import FileResponse
-from sqlmodel import Session, select
+from sqlmodel import Session, select, col
+
 
 from db.session import get_session
 from models.db_models import Run
@@ -72,7 +73,8 @@ async def list_runs(
     limit: int = 20,
 ):
     """List recent runs in descending order of creation."""
-    statement = select(Run).order_by(Run.created_at.desc()).limit(limit)
+    statement = select(Run).order_by(col(Run.created_at).desc()).limit(limit)
+
     runs = session.exec(statement).all()
     results = []
     for r in runs:

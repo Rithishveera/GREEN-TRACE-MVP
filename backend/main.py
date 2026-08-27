@@ -43,6 +43,16 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Enable CORS for local Vite dev server and external frontends
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 # Mount routers
 app.include_router(ingestion_router, prefix="/api")
 app.include_router(review_router, prefix="/api")
@@ -54,6 +64,7 @@ app.include_router(review_router)
 app.include_router(retrieval_router)
 
 @app.get("/health")
+@app.get("/api/health")
 def health_check():
     return {
         "status": "healthy",

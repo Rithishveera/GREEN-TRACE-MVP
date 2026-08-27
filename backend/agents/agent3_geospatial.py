@@ -1,8 +1,9 @@
 import math
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 from datetime import datetime, timezone
 from shapely.geometry import mapping, LineString, Polygon, Point
+from shapely.geometry.base import BaseGeometry
 from shapely.ops import transform, unary_union
 import pyproj
 
@@ -25,14 +26,15 @@ def get_utm_epsg(lat: float, lon: float) -> int:
         return 32700 + zone
 
 
-def project_geometry(geom, from_epsg: int, to_epsg: int):
+def project_geometry(geom: BaseGeometry, from_epsg: int, to_epsg: int) -> BaseGeometry:
     """Project a shapely geometry between EPSG coordinate reference systems."""
     project = pyproj.Transformer.from_crs(
         pyproj.CRS(f"EPSG:{from_epsg}"),
         pyproj.CRS(f"EPSG:{to_epsg}"),
         always_xy=True,
     ).transform
-    return transform(project, geom)
+    result: BaseGeometry = cast(BaseGeometry, transform(project, geom))
+    return result
 
 
 async def run_agent3_geospatial(

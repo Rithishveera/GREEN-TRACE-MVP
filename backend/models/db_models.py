@@ -1,9 +1,11 @@
-from typing import Optional
+from typing import ClassVar, Optional
 from datetime import datetime, timezone
 from sqlmodel import SQLModel, Field
 
 class Run(SQLModel, table=True):
-    __tablename__ = "runs"
+    __tablename__: ClassVar[str] = "runs"  # type: ignore[assignment]
+
+
 
     run_id: str = Field(default=None, primary_key=True)
     state: str = Field(default="ingested", index=True)

@@ -61,6 +61,22 @@ export interface Agent3Data {
   notes?: string;
 }
 
+export interface SpectralLayer {
+  id: string;
+  name: string;
+  sensor: string;
+  description: string;
+  formula: string;
+  band_combination: string;
+  pre_thumbnail_url: string;
+  post_thumbnail_url: string;
+  diff_thumbnail_url?: string;
+  metric_name: string;
+  metric_value: string;
+  status_tag: string;
+  status_color: string;
+}
+
 export interface Agent4Data {
   sensor_used: string;
   cloud_cover_pct: number;
@@ -74,8 +90,10 @@ export interface Agent4Data {
   pre_ec_thumbnail_url: string;
   post_ec_thumbnail_url: string;
   change_heatmap_url?: string;
+  spectral_layers?: SpectralLayer[];
   notes?: string;
 }
+
 
 export interface AgentResult {
   agent: string;

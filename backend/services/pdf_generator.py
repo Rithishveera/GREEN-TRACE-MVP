@@ -126,7 +126,8 @@ def generate_dossier_pdf(
     ]))
     story.append(header_table)
     story.append(Spacer(1, 6))
-    story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#0f172a"), spaceBefore=2, spaceAfter=8))
+    story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#0f172a"), spaceBefore=2, spaceAfter=8))
+
 
     # 2. Project Metadata & Clearance Status
     proj_name = html.escape(str(agent1_data.get("project_name", "N/A")))

@@ -5,8 +5,10 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
+# Always import sqlmodel core at top level so they're never unbound
+from sqlmodel import Session, select
+
 try:
-    from sqlmodel import Session, select
     from db.session import engine
     from models.db_models import Run
     from models.schemas import AgentResult, ConfidenceScore
@@ -26,6 +28,7 @@ except (ImportError, ModuleNotFoundError):
     from backend.agents.agent3_geospatial import run_agent3_geospatial  # type: ignore
     from backend.agents.agent4_satellite import run_agent4_satellite  # type: ignore
     from backend.services.pdf_generator import generate_dossier_pdf  # type: ignore
+
 
 logger = logging.getLogger(__name__)
 
@@ -170,17 +173,23 @@ class Orchestrator:
             })
 
             # Step 3: Agent 4 (Satellite Analyst)
-            # Depends on Agent 3's buffered geometry + Agent 1's EC date
+            # Depends on Agent 3's buffered geometry + Agent 1's EC date & project metadata
             buffered_geom = agent3_res.data.get("buffered_geometry_geojson", {})
+            proj_name = agent1_res.data.get("project_name", "Clearance Site")
+            wb_name = agent3_res.data.get("waterbody_name") or f"{water_target.title()} Corridor"
+            
             agent4_res = await run_agent4_satellite(
                 buffered_geometry_geojson=buffered_geom,
                 ec_approval_date=ec_date,
                 buffer_distance_m=buffer_dist,
+                project_name=proj_name,
+                waterbody_name=wb_name,
             )
 
             cls._update_run(run_id, {
                 "agent4_json": agent4_res.model_dump_json(),
             })
+
 
             # Step 4: Layer 4 Compile + Deterministic Confidence Scoring
             conf_score = compute_deterministic_confidence(agent1_res, agent2_res, agent3_res, agent4_res)

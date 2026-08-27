@@ -16,13 +16,14 @@ async def run_agent4_satellite(
     buffered_geometry_geojson: Dict[str, Any],
     ec_approval_date: str,
     buffer_distance_m: float = 100.0,
+    project_name: str = "Clearance Site",
+    waterbody_name: str = "River Corridor",
     gee_client: Optional[GEEClient] = None,
 ) -> AgentResult:
     """
     Agent 4 — Satellite Analyst:
-    Depends on Agent 3's buffer geometry + Agent 1's EC date.
-    Fallback chain: Sentinel-2 (cloud <20%) -> Sentinel-1 SAR -> Landsat 8/9.
-    Computes NDBI/NDVI pre-EC vs post-EC, clips to buffer, calculates m² of change.
+    Depends on Agent 3's buffer geometry + Agent 1's EC date and project metadata.
+    Computes NDBI spectral delta pre-EC vs post-EC, clips to buffer, calculates m² of change.
     Generates before/after thumbnail images.
     """
     client = gee_client or GEEClient()
@@ -32,10 +33,13 @@ async def run_agent4_satellite(
     sat_output = client.run_satellite_pipeline(
         geometry_geojson=buffered_geometry_geojson,
         ec_approval_date_str=ec_approval_date,
+        project_name=project_name,
+        waterbody_name=waterbody_name,
+        buffer_distance_m=buffer_distance_m,
     )
     
     data = Agent4Data(
-        sensor_used=sat_output.get("sensor_used", "Sentinel-2"),
+        sensor_used=sat_output.get("sensor_used", "Sentinel-2 (MSI)"),
         cloud_cover_pct=sat_output.get("cloud_cover_pct", 0.0),
         pre_ec_date=sat_output.get("pre_ec_date", "Pre-EC"),
         post_ec_date=sat_output.get("post_ec_date", "Post-EC"),
