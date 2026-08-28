@@ -40,18 +40,62 @@ def compute_deterministic_confidence(
     agent4_res: AgentResult,
 ) -> ConfidenceScore:
     """
-    Derives confidence band (🟢/🟡/🔴) via DETERMINISTIC mathematical rules:
-    - Cloud cover percentage (<20% is clean)
-    - Vector buffer match (exact OSM waterbody vs fallback point)
-    - Area of change & spectral index delta
-    - PARIVESH registry status
+    Derives confidence band (🟢/🟡/🔴) via DETERMINISTIC mathematical rules.
+    Hard rules at the top override all numeric scoring:
+      - simulation_mode_active → always RED (simulated findings never reach GREEN/YELLOW)
+      - fabricated_unresolved  → always RED (defense-in-depth; should be unreachable via routing)
+      - state_inferred         → hard -0.30 penalty
+      - format_unrecognized    → forces manual_review, counted in factors
     NEVER LLM-guessed.
     """
     score = 1.0
     factors: Dict[str, Any] = {}
+    force_red = False
+    force_manual_review = False
 
-    # 1. Agent 1: Extraction completeness
     a1_data = agent1_res.data
+    a2_data = agent2_res.data
+    a3_data = agent3_res.data
+    a4_data = agent4_res.data
+
+    # ── HARD RULE 1: Simulation mode → always RED ──────────────────────────────
+    if a4_data.get("analysis_mode") == "offline_demo_simulation":
+        force_red = True
+        factors["simulation_mode_active"] = True
+        factors["simulation_note"] = (
+            "Satellite analysis ran in offline demo simulation mode. "
+            "No live GEE/Sentinel data was queried. Confidence is forced RED."
+        )
+
+    # ── HARD RULE 2: Fabricated/unresolvable coordinates → RED (defense-in-depth) ──
+    coord_source = a1_data.get("coordinates_source", "extracted")
+    if coord_source == "fabricated_unresolved":
+        force_red = True
+        factors["coordinates_fabricated_unresolved"] = True
+        factors["coord_note"] = (
+            "No resolvable project coordinates. Pipeline should have been routed to manual review — "
+            "this is a defense-in-depth guard."
+        )
+    elif coord_source == "state_inferred":
+        # Soft penalty: location is approximate
+        score -= 0.30
+        factors["location_state_inferred"] = True
+        factors["coord_note"] = (
+            "Project location derived from state/city geographic centre "
+            "(not extracted from document text). Results have reduced spatial precision."
+        )
+
+    # ── HARD RULE 3: Unrecognized file number format → force manual review ──────
+    if a2_data.get("parivesh_status") == "format_unrecognized":
+        force_manual_review = True
+        factors["parivesh_format_unrecognized"] = True
+        factors["parivesh_note"] = (
+            "File number format not recognized as a valid MoEFCC/SEIAA statutory pattern. "
+            "Manual verification required before the dossier can be finalized."
+        )
+
+    # ── NUMERIC SCORING (after hard rules) ────────────────────────────────────
+    # 1. Agent 1: Extraction completeness
     if not a1_data.get("coordinates") or len(a1_data.get("coordinates", [])) == 0:
         score -= 0.20
         factors["coordinates_found"] = False
@@ -59,17 +103,14 @@ def compute_deterministic_confidence(
         factors["coordinates_found"] = True
 
     # 2. Agent 2: Legal status
-    a2_data = agent2_res.data
     if a2_data.get("parivesh_status") == "verified_active":
         factors["parivesh_verified"] = True
     else:
-        # Anti-bot block or unreachable
         score -= 0.10
         factors["parivesh_verified"] = False
         factors["parivesh_note"] = a2_data.get("verification_notes", "Challenge noted")
 
     # 3. Agent 3: OSM waterbody ground truth
-    a3_data = agent3_res.data
     if a3_data.get("waterbody_found"):
         factors["osm_waterbody_geometry"] = True
     else:
@@ -78,7 +119,6 @@ def compute_deterministic_confidence(
         factors["osm_note"] = "Synthetic site buffer used"
 
     # 4. Agent 4: Satellite cloud cover & data
-    a4_data = agent4_res.data
     cloud = a4_data.get("cloud_cover_pct", 0.0)
     factors["cloud_cover_pct"] = cloud
     if cloud > 20.0:
@@ -87,13 +127,19 @@ def compute_deterministic_confidence(
         score -= 0.08
 
     final_score = max(0.1, min(1.0, round(score, 2)))
-    
-    if final_score >= 0.80 and not a2_data.get("requires_manual_review") and a3_data.get("waterbody_found"):
+
+    # ── BAND DETERMINATION ────────────────────────────────────────────────────
+    if force_red:
+        band = "red"
+    elif final_score >= 0.80 and not a2_data.get("requires_manual_review") and a3_data.get("waterbody_found"):
         band = "green"
     elif final_score >= 0.60:
         band = "yellow"
     else:
         band = "red"
+
+    factors["force_red"] = force_red
+    factors["force_manual_review"] = force_manual_review
 
     return ConfidenceScore(
         band=band,
@@ -133,7 +179,20 @@ class Orchestrator:
                 "state": RunState.AGENT1_DONE.value,
             })
 
-            # Check qualitative routing
+            # Check coordinates_source — BLOCKING: fabricated_unresolved skips Agents 3 & 4
+            coord_source = agent1_res.data.get("coordinates_source", "extracted")
+            if coord_source == "fabricated_unresolved":
+                logger.warning(
+                    f"Run {run_id}: coordinates_source=fabricated_unresolved. "
+                    "Skipping Agents 3 & 4. Routing to MANUAL_LEGAL_REVIEW."
+                )
+                cls._update_run(run_id, {
+                    "state": RunState.MANUAL_LEGAL_REVIEW.value,
+                    "confidence_band": "red",
+                })
+                return
+
+            # Check qualitative routing (no spatial conditions)
             if agent1_res.data.get("routing") == "manual_legal_review":
                 logger.info(f"Run {run_id} routed to MANUAL_LEGAL_REVIEW by Agent 1.")
                 cls._update_run(run_id, {
@@ -147,7 +206,11 @@ class Orchestrator:
             cls._update_run(run_id, {"state": RunState.PROCESSING.value})
 
             # Extract inputs for downstream agents
-            primary_coord = agent1_res.data.get("primary_coordinate") or [13.8485, 75.7042]
+            primary_coord = agent1_res.data.get("primary_coordinate")
+            if primary_coord is None:
+                # state_inferred case: coords list may still have a centre point
+                coords_list = agent1_res.data.get("coordinates", [])
+                primary_coord = coords_list[0] if coords_list else [13.8485, 75.7042]
             lat, lon = primary_coord[0], primary_coord[1]
             file_no = agent1_res.data.get("file_number", "IA/KA/IND/42019/2021")
             ec_date = agent1_res.data.get("ec_approval_date", "2021-06-15")
@@ -194,8 +257,13 @@ class Orchestrator:
             # Step 4: Layer 4 Compile + Deterministic Confidence Scoring
             conf_score = compute_deterministic_confidence(agent1_res, agent2_res, agent3_res, agent4_res)
 
-            # Determine next state
-            if agent2_res.data.get("requires_manual_review") and conf_score.band == "red":
+            # Determine next state:
+            # - format_unrecognized or force_manual_review → MANUAL_LEGAL_REVIEW
+            # - requires_manual_review AND red → MANUAL_LEGAL_REVIEW
+            # - otherwise → DRAFT_PENDING_REVIEW
+            if conf_score.factors.get("force_manual_review") or conf_score.factors.get("parivesh_format_unrecognized"):
+                target_state = RunState.MANUAL_LEGAL_REVIEW
+            elif agent2_res.data.get("requires_manual_review") and conf_score.band == "red":
                 target_state = RunState.MANUAL_LEGAL_REVIEW
             else:
                 target_state = RunState.DRAFT_PENDING_REVIEW

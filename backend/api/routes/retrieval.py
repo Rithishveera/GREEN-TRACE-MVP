@@ -12,6 +12,7 @@ from db.session import get_session
 from models.db_models import Run
 from models.schemas import RunStatusResponse, AgentResult
 from core.state_machine import RunState
+from api.dependencies import require_api_key
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +104,7 @@ async def list_runs(
     return results
 
 
-@router.get("/dossier/{run_id}")
+@router.get("/dossier/{run_id}", dependencies=[Depends(require_api_key)])
 async def download_dossier_pdf(
     run_id: str,
     session: Session = Depends(get_session),

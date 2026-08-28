@@ -36,6 +36,10 @@ export interface Agent1Data {
   routing: 'continue_pipeline' | 'manual_legal_review';
   suspicious_directives: string[];
   raw_text_summary?: string;
+  // Provenance tracking fields
+  coordinates_source: 'extracted' | 'state_inferred' | 'fabricated_unresolved';
+  extraction_method: 'llm' | 'regex_fallback';
+  warning_flags: string[];
 }
 
 export interface Agent2Data {
@@ -92,6 +96,8 @@ export interface Agent4Data {
   change_heatmap_url?: string;
   spectral_layers?: SpectralLayer[];
   notes?: string;
+  // Provenance tracking: distinguishes live GEE from offline simulation
+  analysis_mode: 'live_gee' | 'offline_demo_simulation';
 }
 
 

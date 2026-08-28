@@ -34,6 +34,10 @@ class Agent1Data(BaseModel):
     routing: Literal["continue_pipeline", "manual_legal_review"] = "continue_pipeline"
     suspicious_directives: List[str] = Field(default_factory=list)
     raw_text_summary: Optional[str] = None
+    # Provenance tracking fields
+    coordinates_source: Literal["extracted", "state_inferred", "fabricated_unresolved"] = "extracted"
+    extraction_method: Literal["llm", "regex_fallback"] = "regex_fallback"
+    warning_flags: List[str] = Field(default_factory=list)
 
 
 class Agent2Data(BaseModel):
@@ -74,6 +78,8 @@ class Agent4Data(BaseModel):
     change_heatmap_url: Optional[str] = ""
     spectral_layers: Optional[List[Dict[str, Any]]] = Field(default_factory=list)
     notes: Optional[str] = None
+    # Provenance tracking: distinguishes live GEE results from offline simulation
+    analysis_mode: Literal["live_gee", "offline_demo_simulation"] = "offline_demo_simulation"
 
 
 

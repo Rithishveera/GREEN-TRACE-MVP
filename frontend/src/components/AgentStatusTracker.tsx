@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import {
   FileSearch, ShieldCheck, Compass, Satellite,
-  CheckCircle2, Clock, AlertTriangle, XCircle,
-  ChevronDown, ChevronUp, Copy, Check, Activity
+  AlertTriangle, ChevronDown, ChevronUp, Copy, Check
 } from 'lucide-react';
 import { RunStatusResponse, AgentResult } from '../types/schemas';
 
@@ -12,46 +11,40 @@ const AGENTS = [
   {
     key: 'agent1' as const,
     num: 1,
+    folio: 'Folio I',
     label: 'Paralegal Extractor',
-    desc: 'Reads the EC PDF, extracts project name, file number, coordinates, EC date and all environmental conditions using Gemini LLM + Regex.',
+    desc: 'Extracts project identity, coordinates, file numbers, approval dates, and verbatim conditions from the statutory PDF document.',
     icon: FileSearch,
-    color: '#3b82f6',
     runningState: 'ingested',
   },
   {
     key: 'agent2' as const,
     num: 2,
+    folio: 'Folio II',
     label: 'Legal Validator',
-    desc: 'Queries PARIVESH portal registry to verify clearance status, tracks amendment history and flags discrepancies.',
+    desc: 'Queries PARIVESH portal registry structure, validates statutory clearance status, and tracks amendment history.',
     icon: ShieldCheck,
-    color: '#8b5cf6',
     runningState: 'processing',
   },
   {
     key: 'agent3' as const,
     num: 3,
+    folio: 'Folio III',
     label: 'Geospatial Scout',
-    desc: 'Fetches real OSM waterbody geometry via Overpass API and applies exact UTM metric buffer calculations.',
+    desc: 'Extracts real vector waterbody geometry via OpenStreetMap Overpass API and computes UTM metric buffer boundaries.',
     icon: Compass,
-    color: '#f59e0b',
     runningState: 'processing',
   },
   {
     key: 'agent4' as const,
     num: 4,
+    folio: 'Folio IV',
     label: 'Satellite Analyst',
-    desc: 'Runs Sentinel-2 NDBI spectral delta across the buffer zone, calculating m² of built-up encroachment post-clearance.',
+    desc: 'Runs Sentinel-2 NDBI multi-spectral delta across the protected buffer, computing exact m² of ground alteration.',
     icon: Satellite,
-    color: '#10b981',
     runningState: 'processing',
   },
 ];
-
-const confidenceBand = (c: number) => {
-  if (c >= 0.85) return { label: 'High', color: '#10b981', bg: 'rgba(16,185,129,0.1)' };
-  if (c >= 0.65) return { label: 'Medium', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' };
-  return { label: 'Low', color: '#ef4444', bg: 'rgba(239,68,68,0.1)' };
-};
 
 const AgentCard: React.FC<{
   agent: typeof AGENTS[0];
@@ -76,21 +69,20 @@ const AgentCard: React.FC<{
   }
 
   const statusMeta = {
-    done:    { label: 'Complete',  color: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)', Icon: CheckCircle2 },
-    flagged: { label: 'Flagged',   color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)', Icon: AlertTriangle },
-    running: { label: 'Running…',  color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.25)', Icon: Activity },
-    pending: { label: 'Queued',    color: '#475569', bg: 'rgba(71,85,105,0.08)',   border: 'rgba(71,85,105,0.15)',   Icon: Clock },
-    error:   { label: 'Error',     color: '#ef4444', bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.2)',  Icon: XCircle },
+    done:    { label: 'COMPLETED', stampClass: 'stamp-chip--confirmed' },
+    flagged: { label: 'FLAGGED',   stampClass: 'stamp-chip--flagged' },
+    running: { label: 'IN PROCESS', stampClass: 'stamp-chip--warning' },
+    pending: { label: 'QUEUED',    stampClass: 'stamp-chip--pending' },
+    error:   { label: 'ERROR',     stampClass: 'stamp-chip--flagged' },
   }[status];
-
-  const cb = result ? confidenceBand(result.confidence) : null;
 
   return (
     <div style={{
-      background: 'rgba(15,23,42,0.8)',
-      border: `1px solid ${result ? `${agent.color}20` : 'rgba(255,255,255,0.06)'}`,
-      borderRadius: 14, overflow: 'hidden',
-      transition: 'border-color 0.2s',
+      background: 'var(--bg-card)',
+      border: '1px solid var(--border-subtle)',
+      borderRadius: 'var(--radius-md)',
+      overflow: 'hidden',
+      transition: 'border-color 0.15s, box-shadow 0.15s',
     }}>
       {/* Card header */}
       <div
@@ -101,33 +93,33 @@ const AgentCard: React.FC<{
         }}
         onClick={() => result && setExpanded(v => !v)}
       >
-        {/* Agent icon */}
+        {/* Agent index badge */}
         <div style={{
-          width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-          background: result ? `${agent.color}15` : 'rgba(30,41,59,0.5)',
-          border: `1px solid ${result ? `${agent.color}30` : 'rgba(255,255,255,0.06)'}`,
+          width: 38, height: 38, borderRadius: 'var(--radius-sm)', flexShrink: 0,
+          background: 'var(--bg-surface-elevated)',
+          border: '1px solid var(--border-medium)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           position: 'relative',
         }}>
           {isRunning ? (
             <div style={{
-              width: 22, height: 22,
-              border: `2px solid ${agent.color}40`,
-              borderTopColor: agent.color,
-              borderRadius: '50%',
+              width: 18, height: 18,
+              border: '2px solid var(--border-medium)',
+              borderTopColor: 'var(--text-primary)',
+              borderRadius: 'var(--radius-full)',
               animation: 'spin 0.8s linear infinite',
             }} />
           ) : (
-            <Icon size={20} style={{ color: result ? agent.color : '#334155' }} />
+            <Icon size={18} style={{ color: result ? 'var(--text-primary)' : 'var(--text-muted)' }} />
           )}
-          {/* Step number */}
+          {/* Folio digit */}
           <div style={{
             position: 'absolute', bottom: -4, right: -4,
-            width: 16, height: 16, borderRadius: '50%',
-            background: result ? agent.color : '#1e293b',
-            border: '1.5px solid #060d1a',
-            fontSize: '0.6rem', fontWeight: 800, color: result ? '#fff' : '#475569',
+            width: 15, height: 15, borderRadius: 'var(--radius-full)',
+            background: 'var(--text-primary)',
+            fontSize: '0.55rem', fontWeight: 800, color: 'var(--bg-surface)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: 'var(--font-mono)',
           }}>
             {agent.num}
           </div>
@@ -135,35 +127,35 @@ const AgentCard: React.FC<{
 
         {/* Name + desc */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: '0.88rem', fontWeight: 700, color: result ? '#f1f5f9' : '#475569', marginBottom: 3 }}>
-            {agent.label}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+            <span className="folio-number" style={{ fontSize: '0.65rem' }}>{agent.folio}</span>
+            <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              {agent.label}
+            </span>
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#334155', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {agent.desc}
           </div>
         </div>
 
         {/* Status + confidence */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          {cb && (
+          {result && (
             <div style={{
-              fontSize: '0.7rem', fontWeight: 700, padding: '3px 9px',
-              borderRadius: 99, color: cb.color, background: cb.bg,
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.72rem', fontWeight: 700,
+              padding: '2px 8px', borderRadius: 'var(--radius-sm)',
+              color: 'var(--text-primary)', background: 'var(--bg-surface-elevated)',
+              border: '1px solid var(--border-subtle)',
             }}>
-              {Math.round(result!.confidence * 100)}%
+              {Math.round(result.confidence * 100)}% DET
             </div>
           )}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 5,
-            fontSize: '0.7rem', fontWeight: 700, padding: '3px 9px', borderRadius: 99,
-            letterSpacing: '0.04em', textTransform: 'uppercase',
-            color: statusMeta.color, background: statusMeta.bg, border: `1px solid ${statusMeta.border}`,
-          }}>
-            {isRunning && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#3b82f6', animation: 'pulse-ring 1.2s infinite' }} />}
+          <span className={`stamp-chip ${statusMeta.stampClass}`}>
             {statusMeta.label}
-          </div>
+          </span>
           {result && (
-            expanded ? <ChevronUp size={14} style={{ color: '#475569' }} /> : <ChevronDown size={14} style={{ color: '#475569' }} />
+            expanded ? <ChevronUp size={14} style={{ color: 'var(--text-muted)' }} /> : <ChevronDown size={14} style={{ color: 'var(--text-muted)' }} />
           )}
         </div>
       </div>
@@ -171,53 +163,53 @@ const AgentCard: React.FC<{
       {/* Warnings strip */}
       {result?.warnings && result.warnings.length > 0 && (
         <div style={{
-          margin: '0 18px 12px', padding: '8px 12px', borderRadius: 8,
-          background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)',
+          margin: '0 18px 12px', padding: '8px 12px', borderRadius: 'var(--radius-sm)',
+          background: 'var(--status-warning-bg)', border: '1px solid var(--status-warning)',
         }}>
           {result.warnings.map((w, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: '0.75rem', color: '#d97706', lineHeight: 1.5 }}>
-              <AlertTriangle size={12} style={{ marginTop: 2, flexShrink: 0 }} />
-              {w}
+            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: '0.75rem', color: 'var(--status-warning)', lineHeight: 1.5, fontFamily: 'var(--font-sans)' }}>
+              <AlertTriangle size={13} style={{ marginTop: 2, flexShrink: 0 }} />
+              <span>{w}</span>
             </div>
           ))}
         </div>
       )}
 
-      {/* Expanded evidence */}
+      {/* Expanded evidence ledger */}
       {expanded && result && (
         <div style={{
-          borderTop: '1px solid rgba(255,255,255,0.05)',
+          borderTop: '1px solid var(--border-subtle)',
           padding: '14px 18px',
+          background: 'var(--bg-surface-elevated)',
           animation: 'fadeIn 0.2s ease',
         }}>
+          <div style={{ fontSize: '0.68rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+            Registered Evidence Items ({result.evidence.length})
+          </div>
           {result.evidence.map((ev, i) => (
             <div key={i} style={{
-              marginBottom: i < result.evidence.length - 1 ? 10 : 0,
-              padding: '10px 12px', borderRadius: 8,
-              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)',
+              marginBottom: i < result.evidence.length - 1 ? 8 : 0,
+              padding: '10px 12px', borderRadius: 'var(--radius-sm)',
+              background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', fontFamily: 'var(--font-mono)' }}>
                   {ev.source}
                 </span>
                 <button
                   onClick={() => copyRef(ev.raw_reference, i)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 4,
-                    fontSize: '0.7rem', color: copied === i ? '#10b981' : '#475569',
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    transition: 'color 0.15s',
-                  }}
+                  className="btn-ghost"
+                  style={{ padding: '2px 6px', fontSize: '0.68rem' }}
                 >
                   {copied === i ? <Check size={11} /> : <Copy size={11} />}
-                  {copied === i ? 'Copied' : 'Copy ref'}
+                  <span>{copied === i ? 'Copied' : 'Copy'}</span>
                 </button>
               </div>
-              <p style={{ fontSize: '0.78rem', color: '#94a3b8', fontFamily: 'JetBrains Mono, monospace', lineHeight: 1.5, wordBreak: 'break-all' }}>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', lineHeight: 1.5, wordBreak: 'break-all' }}>
                 {ev.raw_reference}
               </p>
-              <div style={{ marginTop: 6, fontSize: '0.68rem', color: '#334155', fontFamily: 'JetBrains Mono, monospace' }}>
-                {ev.timestamp.slice(0, 19).replace('T', ' ')} UTC
+              <div style={{ marginTop: 4, fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                Recorded: {ev.timestamp.slice(0, 19).replace('T', ' ')} UTC
               </div>
             </div>
           ))}
@@ -231,34 +223,35 @@ export const AgentStatusTracker: React.FC<Props> = ({ status }) => {
   const overallBand = status.confidence_band;
 
   return (
-    <div>
-      {/* Overall confidence */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Overall confidence determination banner */}
       {overallBand && (
         <div style={{
-          marginBottom: 20, padding: '14px 18px',
-          background: overallBand === 'green' ? 'rgba(16,185,129,0.06)' : overallBand === 'yellow' ? 'rgba(245,158,11,0.06)' : 'rgba(239,68,68,0.06)',
-          border: `1px solid ${overallBand === 'green' ? 'rgba(16,185,129,0.2)' : overallBand === 'yellow' ? 'rgba(245,158,11,0.2)' : 'rgba(239,68,68,0.2)'}`,
-          borderRadius: 12, display: 'flex', alignItems: 'center', gap: 12,
+          padding: '14px 18px',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-medium)',
+          borderRadius: 'var(--radius-md)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexWrap: 'wrap', gap: 12,
         }}>
-          <div style={{
-            width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
-            background: overallBand === 'green' ? '#10b981' : overallBand === 'yellow' ? '#f59e0b' : '#ef4444',
-          }} />
           <div>
-            <span style={{
-              fontSize: '0.8rem', fontWeight: 700,
-              color: overallBand === 'green' ? '#10b981' : overallBand === 'yellow' ? '#f59e0b' : '#ef4444',
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>
+              Deterministic Confidence Band
+            </div>
+            <div style={{
+              fontFamily: 'var(--font-display)', fontSize: '0.95rem', fontWeight: 700,
+              color: 'var(--text-primary)',
             }}>
-              {overallBand === 'green' ? 'High Confidence Audit' : overallBand === 'yellow' ? 'Medium Confidence — Review Recommended' : 'Low Confidence — Expert Review Required'}
-            </span>
-            <span style={{ fontSize: '0.78rem', color: '#475569', marginLeft: 10 }}>
-              Confidence band: <strong style={{ color: '#94a3b8', textTransform: 'uppercase' }}>{overallBand}</strong>
-            </span>
+              {overallBand === 'green' ? 'High Provenance Verification' : overallBand === 'yellow' ? 'Medium Confidence — Inspection Recommended' : 'Low Confidence / Simulation Active — Manual Review Required'}
+            </div>
           </div>
+          <span className={`stamp-chip ${overallBand === 'green' ? 'stamp-chip--confirmed' : overallBand === 'yellow' ? 'stamp-chip--warning' : 'stamp-chip--flagged'}`}>
+            BAND {overallBand.toUpperCase()}
+          </span>
         </div>
       )}
 
-      {/* Agent cards */}
+      {/* Agent cards list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {AGENTS.map(agent => (
           <AgentCard
@@ -267,9 +260,9 @@ export const AgentStatusTracker: React.FC<Props> = ({ status }) => {
             result={status[agent.key]}
             isRunning={!status[agent.key] && status.state === agent.runningState}
           />
-
         ))}
       </div>
     </div>
   );
 };
+

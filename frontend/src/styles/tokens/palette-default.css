@@ -1,48 +1,52 @@
-:root, [data-theme="civic"] {
-  --bg-app: #090d16;
-  --bg-surface: #0f172a;
-  --bg-surface-elevated: #1e293b;
-  --bg-surface-subtle: #141e33;
-  --bg-card: rgba(15, 23, 42, 0.75);
-  --bg-card-hover: rgba(30, 41, 59, 0.85);
+:root, [data-theme="ledger"], [data-theme="civic"] {
+  /* Paper surfaces */
+  --bg-app: #EDE9DB;
+  --bg-surface: #F1EEE3;
+  --bg-surface-elevated: #E8E3D4;
+  --bg-surface-subtle: #E3DECD;
+  --bg-card: #F1EEE3;
+  --bg-card-hover: #EAE5D6;
 
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-medium: rgba(255, 255, 255, 0.15);
-  --border-focus: #10b981;
+  /* Rules & borders — hairline, not glow */
+  --border-subtle: rgba(28, 42, 32, 0.12);
+  --border-medium: rgba(28, 42, 32, 0.22);
+  --border-focus: #1C2A20;
 
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --text-inverse: #090d16;
+  /* Ink */
+  --text-primary: #1C2A20;
+  --text-secondary: #4B5D50;
+  --text-muted: #7A8A7C;
+  --text-inverse: #F1EEE3;
 
-  /* Primary Brand - Civic Emerald */
-  --primary: #10b981;
-  --primary-hover: #059669;
-  --primary-glow: rgba(16, 185, 129, 0.25);
-  --primary-light: #ecfdf5;
-  --primary-surface: rgba(16, 185, 129, 0.12);
+  /* Primary is ink, not a bright brand color — this app doesn't need a "brand blue" */
+  --primary: #1C2A20;
+  --primary-hover: #0F1911;
+  --primary-glow: transparent; /* no glow anywhere in this system */
+  --primary-light: #E8E3D4;
+  --primary-surface: rgba(28, 42, 32, 0.06);
 
-  /* Status Colors */
-  --status-success: #10b981;
-  --status-success-bg: rgba(16, 185, 129, 0.15);
-  --status-warning: #f59e0b;
-  --status-warning-bg: rgba(245, 158, 11, 0.15);
-  --status-danger: #ef4444;
-  --status-danger-bg: rgba(239, 68, 68, 0.15);
-  --status-info: #3b82f6;
-  --status-info-bg: rgba(59, 130, 246, 0.15);
+  /* Status = stamp colors, not saturated UI colors */
+  --status-success: #4B6B4E;
+  --status-success-bg: rgba(75, 107, 78, 0.12);
+  --status-warning: #9C7A24;
+  --status-warning-bg: rgba(156, 122, 36, 0.12);
+  --status-danger: #8B3A2B;
+  --status-danger-bg: rgba(139, 58, 43, 0.1);
+  --status-info: #4B5D50;
+  --status-info-bg: rgba(75, 93, 80, 0.1);
 
-  /* Elevation & Glows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 16px -2px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 12px 32px -4px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 0 25px rgba(16, 185, 129, 0.18);
-  
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-full: 9999px;
+  --shadow-sm: 0 1px 0 0 rgba(28, 42, 32, 0.08);
+  --shadow-md: 0 2px 8px -2px rgba(28, 42, 32, 0.12);
+  --shadow-lg: 0 8px 24px -6px rgba(28, 42, 32, 0.16);
+  --shadow-glow: none;
 
-  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-full: 9999px; /* reserved ONLY for the stamp component */
+
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'JetBrains Mono', monospace;
 }
+

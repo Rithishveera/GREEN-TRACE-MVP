@@ -57,20 +57,23 @@ const SATELLITE_PROVIDERS = [
   },
   {
     id: 'carto_dark',
-    name: 'Sentinel-1 SAR Radar Composite',
-    badge: 'ALL-WEATHER RADAR',
+    // Honest label: this tile source is an ESRI dark-gray cartographic basemap,
+    // NOT actual Sentinel-1 SAR backscatter data.
+    name: 'Dark Reference Basemap (contrast only)',
+    badge: 'REFERENCE BASEMAP',
     color: '#a855f7',
-    description: 'High-contrast synthetic aperture radar backscatter tracking metallic industrial infrastructure with zero cloud interference.',
+    description: 'ESRI dark-gray cartographic basemap for visual contrast reference — NOT derived from SAR or radar data. Select ESRI World Imagery for real satellite imagery.',
     url: 'https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
     attribution: '© Esri, HERE, Garmin, © OpenStreetMap',
     maxZoom: 18,
   },
   {
     id: 'nasa_night',
-    name: 'NASA Night Radiance & Thermal',
-    badge: 'VIIRS THERMAL',
+    // Honest label: raw VIIRS night-lights tiles; no thermal band processing applied.
+    name: 'Nighttime Lights Reference (VIIRS, unprocessed)',
+    badge: 'VIIRS UNPROCESSED',
     color: '#ec4899',
-    description: 'NASA Suomi-NPP VIIRS thermal sensor detecting nighttime industrial heat radiance and operations.',
+    description: 'NASA VIIRS raw night-lights mosaic tiles. No thermal band processing applied — shows light radiance only, not industrial heat signatures.',
     url: 'https://map1.vis.earthdata.nasa.gov/wmts-webmerc/VIIRS_CityLights_2012/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpg',
     attribution: '© NASA Global Imagery Browse Services (GIBS)',
     maxZoom: 8,
@@ -83,6 +86,9 @@ export const BeforeAfterSlider: React.FC<Props> = ({
   agent1Data,
   agent3Data,
 }) => {
+  // Determine if we are in simulation mode — this gates what overlays are allowed to show
+  const isSimulation = !agent4Data?.analysis_mode || agent4Data.analysis_mode !== 'live_gee';
+
   const [activeProviderId, setActiveProviderId] = useState<string>('esri');
   const [viewMode, setViewMode] = useState<'slider' | 'side-by-side' | 'diff' | 'real-map'>('slider');
   const [sliderPosition, setSliderPosition] = useState<number>(50);
@@ -160,13 +166,31 @@ export const BeforeAfterSlider: React.FC<Props> = ({
   };
 
   // Helper: Add encroachment polygon
+  // IMPORTANT: Only rendered when analysis_mode === 'live_gee'.
+  // In simulation mode, the encroachment location and size are NOT derived from
+  // real satellite data, so displaying a red circle would be misleading.
   const addEncroachmentZone = (map: L.Map) => {
     if (!showEncroachmentOverlay) return;
-    const offsetLat = lat + 0.0011;
-    const offsetLon = lon + 0.0014;
+    if (isSimulation) {
+      // In simulation mode, add a clearly-labelled illustrative marker instead
+      const offsetLat = lat + 0.0011;
+      const offsetLon = lon + 0.0014;
+      const illIcon = L.divIcon({
+        className: '',
+        html: `<div style="
+          padding: 4px 8px; border-radius: 6px;
+          background: rgba(245,158,11,0.9); color: #000;
+          font-weight: 800; font-size: 10px; white-space: nowrap;
+          border: 1.5px solid #f59e0b; font-family: sans-serif;
+        ">ILLUSTRATIVE — NOT AN ACTUAL DETECTION</div>`,
+        iconAnchor: [90, 10],
+      });
+      L.marker([offsetLat, offsetLon], { icon: illIcon }).addTo(map);
+      return;
+    }
     const radius = Math.max(40, Math.sqrt(changeAreaM2 / Math.PI));
 
-    L.circle([offsetLat, offsetLon], {
+    L.circle([lat + 0.0011, lon + 0.0014], {
       radius,
       color: '#ef4444',
       weight: 2,
@@ -429,68 +453,68 @@ export const BeforeAfterSlider: React.FC<Props> = ({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* ── Top Satellite Provider Selector Bar ── */}
       <div style={{
-        background: 'rgba(15,23,42,0.85)',
-        border: '1px solid rgba(255,255,255,0.07)',
-        borderRadius: 16, padding: '16px 20px',
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border-medium)',
+        borderRadius: 'var(--radius-md)', padding: '16px 20px',
+        boxShadow: 'var(--shadow-sm)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{
-              width: 36, height: 36, borderRadius: 10,
-              background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)',
+              width: 36, height: 36, borderRadius: 'var(--radius-sm)',
+              background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-medium)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <Globe size={18} style={{ color: '#10b981' }} />
+              <Globe size={18} style={{ color: 'var(--text-primary)' }} />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#f1f5f9' }}>
-                  Real-World Satellite & Geospatial Intelligence
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Satellite Imagery &amp; Multi-Spectral Intelligence
                 </h3>
-                <span style={{
-                  fontSize: '0.65rem', fontWeight: 800, padding: '2px 8px', borderRadius: 99,
-                  background: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)',
-                }}>
+                <span className="stamp-chip stamp-chip--pending" style={{ fontSize: '0.65rem' }}>
                   GPS {lat.toFixed(4)}°N, {lon.toFixed(4)}°E
                 </span>
               </div>
-              <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>
-                Live satellite tiles across multiple space agencies and 3D OpenStreetMap terrain directly on project coordinates.
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: 2 }}>
+                High-resolution optical orbital tiles and vector terrain registry directly referenced to site coordinates.
               </p>
             </div>
           </div>
 
           {/* View mode toggle */}
           <div style={{
-            display: 'flex', gap: 4, background: 'rgba(6,13,26,0.8)',
-            borderRadius: 10, padding: 4, border: '1px solid rgba(255,255,255,0.06)',
+            display: 'flex', gap: 2, background: 'var(--bg-surface-elevated)',
+            borderRadius: 'var(--radius-sm)', padding: 3, border: '1px solid var(--border-medium)',
           }}>
             {[
               { mode: 'slider' as const, label: 'Split Slider', icon: Sliders },
               { mode: 'side-by-side' as const, label: 'Side-by-Side', icon: Maximize2 },
               { mode: 'diff' as const, label: 'Delta Heatmap', icon: Layers },
-              { mode: 'real-map' as const, label: '3D Interactive Map', icon: MapIcon },
+              { mode: 'real-map' as const, label: '3D Vector Map', icon: MapIcon },
             ].map(({ mode, label, icon: Icon }) => (
               <button
                 key={mode}
                 onClick={() => setViewMode(mode)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '7px 12px', borderRadius: 8, border: 'none',
-                  fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
-                  background: viewMode === mode ? 'rgba(16,185,129,0.15)' : 'transparent',
-                  color: viewMode === mode ? '#10b981' : '#64748b',
+                  padding: '6px 10px', borderRadius: 'var(--radius-sm)',
+                  border: '1px solid',
+                  borderColor: viewMode === mode ? 'var(--border-focus)' : 'transparent',
+                  fontSize: '0.72rem', fontWeight: viewMode === mode ? 700 : 500, cursor: 'pointer',
+                  background: viewMode === mode ? 'var(--bg-surface)' : 'transparent',
+                  color: viewMode === mode ? 'var(--text-primary)' : 'var(--text-secondary)',
                   transition: 'all 0.15s',
                 }}
               >
-                <Icon size={13} />
+                <Icon size={12} />
                 <span>{label}</span>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Satellite Provider Selection Pills */}
+        {/* Satellite Provider Selection (Ledger Index Tabs) */}
         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
           {SATELLITE_PROVIDERS.map(p => {
             const isSelected = p.id === activeProviderId;
@@ -500,64 +524,85 @@ export const BeforeAfterSlider: React.FC<Props> = ({
                 onClick={() => setActiveProviderId(p.id)}
                 style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-                  padding: '10px 14px', borderRadius: 10, flexShrink: 0,
-                  background: isSelected ? 'rgba(16,185,129,0.12)' : 'rgba(30,41,59,0.5)',
-                  border: `1px solid ${isSelected ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.06)'}`,
+                  padding: '8px 12px', borderRadius: 'var(--radius-sm)', flexShrink: 0,
+                  background: isSelected ? 'var(--bg-surface-elevated)' : 'var(--bg-surface)',
+                  border: '1px solid',
+                  borderColor: isSelected ? 'var(--border-focus)' : 'var(--border-subtle)',
+                  borderBottom: isSelected ? '3px solid var(--text-primary)' : '1px solid var(--border-subtle)',
                   cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
-                  boxShadow: isSelected ? '0 0 16px rgba(16,185,129,0.15)' : 'none',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: p.color }} />
-                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: isSelected ? '#f1f5f9' : '#94a3b8' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: 'var(--radius-full)', background: 'var(--text-primary)' }} />
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                     {p.name}
                   </span>
                 </div>
-                <span style={{ fontSize: '0.65rem', color: '#475569', fontFamily: 'JetBrains Mono, monospace' }}>
+                <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
                   {p.badge}
                 </span>
               </button>
             );
           })}
         </div>
+
+        {/* Simulation mode warning banner */}
+        {isSimulation && (
+          <div style={{
+            marginTop: 12,
+            padding: '10px 14px',
+            borderRadius: 'var(--radius-sm)',
+            background: 'var(--status-warning-bg)',
+            border: '1px solid var(--status-warning)',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 10,
+          }}>
+            <span style={{ fontSize: '0.9rem', lineHeight: 1 }}>⚠</span>
+            <div>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--status-warning)' }}>
+                Illustrative simulation overlay only — not derived from live satellite data for this specific location.&nbsp;
+              </span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                The map displays real georeferenced satellite tile imagery for the coordinates, but spectral delta indices and encroachment measurements reflect document metadata simulations.
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Active Provider Info & Layer Overlay Controls ── */}
       <div style={{
-        padding: '12px 18px', borderRadius: 12,
-        background: 'rgba(15,23,42,0.6)', border: '1px solid rgba(255,255,255,0.06)',
+        padding: '10px 16px', borderRadius: 'var(--radius-sm)',
+        background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)',
         display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{
-            fontSize: '0.65rem', fontWeight: 800, padding: '3px 8px', borderRadius: 99,
-            color: activeProvider.color, background: `${activeProvider.color}15`,
-            border: `1px solid ${activeProvider.color}30`, letterSpacing: '0.05em',
-          }}>
+          <span className="stamp-chip stamp-chip--pending" style={{ fontSize: '0.62rem' }}>
             {activeProvider.badge}
           </span>
-          <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
             {activeProvider.description}
           </span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: '#e2e8f0', cursor: 'pointer' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: 'var(--text-primary)', cursor: 'pointer' }}>
             <input
               type="checkbox"
               checked={showBufferOverlay}
               onChange={e => setShowBufferOverlay(e.target.checked)}
-              style={{ accentColor: '#eab308' }}
+              style={{ accentColor: 'var(--status-warning)' }}
             />
             <span>{bufferDist}m Buffer Zone</span>
           </label>
 
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: '#e2e8f0', cursor: 'pointer' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: 'var(--text-primary)', cursor: 'pointer' }}>
             <input
               type="checkbox"
               checked={showEncroachmentOverlay}
               onChange={e => setShowEncroachmentOverlay(e.target.checked)}
-              style={{ accentColor: '#ef4444' }}
+              style={{ accentColor: 'var(--status-danger)' }}
             />
             <span>Encroachment Zone</span>
           </label>
@@ -572,8 +617,8 @@ export const BeforeAfterSlider: React.FC<Props> = ({
           ref={sliderContainerRef}
           style={{
             position: 'relative', width: '100%', height: 480,
-            borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)',
-            background: '#040812', boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+            borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-medium)',
+            background: 'var(--bg-app)', boxShadow: 'var(--shadow-md)',
             userSelect: 'none',
           }}
         >
@@ -594,9 +639,8 @@ export const BeforeAfterSlider: React.FC<Props> = ({
           {/* Draggable Divider Line */}
           <div
             style={{
-              position: 'absolute', top: 0, bottom: 0, width: 3,
-              background: '#10b981', cursor: 'ew-resize',
-              boxShadow: '0 0 20px rgba(16,185,129,0.9)',
+              position: 'absolute', top: 0, bottom: 0, width: 2,
+              background: 'var(--text-primary)', cursor: 'ew-resize',
               left: `${sliderPosition}%`, zIndex: 600,
             }}
             onMouseDown={e => { e.preventDefault(); setIsDragging(true); }}
@@ -604,84 +648,82 @@ export const BeforeAfterSlider: React.FC<Props> = ({
           >
             <div style={{
               position: 'absolute', top: '50%', transform: 'translate(-50%, -50%)',
-              width: 38, height: 38, borderRadius: '50%',
-              background: '#090d16', border: '2px solid #10b981',
+              width: 32, height: 32, borderRadius: 'var(--radius-full)',
+              background: 'var(--bg-surface)', border: '2px solid var(--text-primary)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#10b981', boxShadow: '0 0 25px rgba(16,185,129,0.6)',
+              color: 'var(--text-primary)', boxShadow: 'var(--shadow-md)',
               cursor: 'ew-resize',
             }}>
-              <Sliders size={16} />
+              <Sliders size={14} />
             </div>
           </div>
 
           {/* Floating Badges */}
           <div style={{
-            position: 'absolute', top: 14, left: 14, zIndex: 700, pointerEvents: 'none',
-            padding: '6px 14px', borderRadius: 8,
-            background: 'rgba(6,13,26,0.92)', backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(16,185,129,0.35)',
-            fontSize: '0.75rem', fontWeight: 800, color: '#34d399', letterSpacing: '0.04em',
+            position: 'absolute', top: 12, left: 12, zIndex: 700, pointerEvents: 'none',
+            padding: '4px 10px', borderRadius: 'var(--radius-sm)',
+            background: 'var(--bg-surface)', border: '1px solid var(--border-medium)',
+            fontFamily: 'var(--font-mono)', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-primary)',
           }}>
             PRE-EC BASELINE ({agent4Data?.pre_ec_date?.slice(0, 10) || 'Baseline'})
           </div>
 
           <div style={{
-            position: 'absolute', top: 14, right: 14, zIndex: 700, pointerEvents: 'none',
-            padding: '6px 14px', borderRadius: 8,
-            background: 'rgba(6,13,26,0.92)', backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(239,68,68,0.35)',
-            fontSize: '0.75rem', fontWeight: 800, color: '#f87171', letterSpacing: '0.04em',
+            position: 'absolute', top: 12, right: 12, zIndex: 700, pointerEvents: 'none',
+            padding: '4px 10px', borderRadius: 'var(--radius-sm)',
+            background: 'var(--bg-surface)', border: '1px solid var(--border-medium)',
+            fontFamily: 'var(--font-mono)', fontSize: '0.7rem', fontWeight: 700, color: 'var(--status-danger)',
           }}>
             POST-EC AUDIT ({agent4Data?.post_ec_date?.slice(0, 10) || 'Audit'})
           </div>
 
           {/* Zoom & Recenter Controls */}
           <div style={{
-            position: 'absolute', bottom: 14, right: 14, zIndex: 700,
+            position: 'absolute', bottom: 12, right: 12, zIndex: 700,
             display: 'flex', gap: 6,
           }}>
             <button
               onClick={() => handleZoom(1)}
               style={{
-                width: 32, height: 32, borderRadius: 8, background: 'rgba(15,23,42,0.9)',
-                border: '1px solid rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer',
+                width: 30, height: 30, borderRadius: 'var(--radius-sm)', background: 'var(--bg-surface)',
+                border: '1px solid var(--border-medium)', color: 'var(--text-primary)', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
               title="Zoom In"
             >
-              <ZoomIn size={16} />
+              <ZoomIn size={14} />
             </button>
             <button
               onClick={() => handleZoom(-1)}
               style={{
-                width: 32, height: 32, borderRadius: 8, background: 'rgba(15,23,42,0.9)',
-                border: '1px solid rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer',
+                width: 30, height: 30, borderRadius: 'var(--radius-sm)', background: 'var(--bg-surface)',
+                border: '1px solid var(--border-medium)', color: 'var(--text-primary)', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
               title="Zoom Out"
             >
-              <ZoomOut size={16} />
+              <ZoomOut size={14} />
             </button>
             <button
               onClick={handleRecenter}
               style={{
-                width: 32, height: 32, borderRadius: 8, background: 'rgba(15,23,42,0.9)',
-                border: '1px solid rgba(255,255,255,0.1)', color: '#10b981', cursor: 'pointer',
+                width: 30, height: 30, borderRadius: 'var(--radius-sm)', background: 'var(--bg-surface)',
+                border: '1px solid var(--border-medium)', color: 'var(--text-primary)', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
               title="Recenter Site"
             >
-              <Crosshair size={16} />
+              <Crosshair size={14} />
             </button>
           </div>
 
           <div style={{
-            position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)', zIndex: 700, pointerEvents: 'none',
-            padding: '4px 14px', borderRadius: 99,
-            background: 'rgba(6,13,26,0.9)', border: '1px solid rgba(255,255,255,0.1)',
-            fontSize: '0.7rem', color: '#94a3b8',
+            position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 700, pointerEvents: 'none',
+            padding: '3px 10px', borderRadius: 'var(--radius-sm)',
+            background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
+            fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--text-secondary)',
           }}>
-            Drag slider to inspect physical satellite change ({sliderPosition}%)
+            Drag divider to compare baseline against current ({sliderPosition}%)
           </div>
         </div>
       )}
@@ -689,22 +731,22 @@ export const BeforeAfterSlider: React.FC<Props> = ({
       {/* 2. Side-by-Side Synchronized Real Satellite Maps */}
       {viewMode === 'side-by-side' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700, color: '#34d399', padding: '0 4px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-primary)', padding: '0 2px' }}>
               <span>PRE-EC BASELINE</span>
-              <span style={{ color: '#64748b', fontFamily: 'monospace' }}>{agent4Data?.pre_ec_date}</span>
+              <span style={{ color: 'var(--text-muted)' }}>{agent4Data?.pre_ec_date}</span>
             </div>
-            <div style={{ height: 440, borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', background: '#040812' }}>
+            <div style={{ height: 440, borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-medium)', background: 'var(--bg-app)' }}>
               <div ref={mapSideLeftRef} style={{ width: '100%', height: '100%' }} />
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700, color: '#f87171', padding: '0 4px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: '0.72rem', fontWeight: 700, color: 'var(--status-danger)', padding: '0 2px' }}>
               <span>POST-EC AUDIT</span>
-              <span style={{ color: '#64748b', fontFamily: 'monospace' }}>{agent4Data?.post_ec_date}</span>
+              <span style={{ color: 'var(--text-muted)' }}>{agent4Data?.post_ec_date}</span>
             </div>
-            <div style={{ height: 440, borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', background: '#040812' }}>
+            <div style={{ height: 440, borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-medium)', background: 'var(--bg-app)' }}>
               <div ref={mapSideRightRef} style={{ width: '100%', height: '100%' }} />
             </div>
           </div>
@@ -715,19 +757,19 @@ export const BeforeAfterSlider: React.FC<Props> = ({
       {viewMode === 'diff' && (
         <div style={{
           position: 'relative', width: '100%', height: 480,
-          borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)',
-          boxShadow: '0 20px 50px rgba(0,0,0,0.5)', background: '#040812',
+          borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-medium)',
+          boxShadow: 'var(--shadow-md)', background: 'var(--bg-app)',
         }}>
           <div ref={mapDiffRef} style={{ width: '100%', height: '100%' }} />
           <div style={{
-            position: 'absolute', bottom: 14, left: 14, right: 14, zIndex: 1000,
-            padding: '10px 16px', borderRadius: 12,
-            background: 'rgba(6,13,26,0.92)', backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(245,158,11,0.3)',
+            position: 'absolute', bottom: 12, left: 12, right: 12, zIndex: 1000,
+            padding: '8px 14px', borderRadius: 'var(--radius-sm)',
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-medium)',
             display: 'flex', alignItems: 'center', gap: 10,
           }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', animation: 'pulse-ring 1.5s infinite', flexShrink: 0 }} />
-            <span style={{ fontSize: '0.78rem', color: '#fbbf24' }}>
+            <div style={{ width: 8, height: 8, borderRadius: 'var(--radius-full)', background: 'var(--status-danger)', flexShrink: 0 }} />
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
               Red anomaly zones indicate positive NDBI built-up surge exceeding 0.15 threshold inside the {bufferDist}m {waterbodyName} buffer.
             </span>
           </div>
@@ -738,26 +780,26 @@ export const BeforeAfterSlider: React.FC<Props> = ({
       {viewMode === 'real-map' && (
         <div style={{
           position: 'relative', width: '100%', height: 480,
-          borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.5)', background: '#020617',
+          borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-medium)',
+          boxShadow: 'var(--shadow-md)', background: 'var(--bg-app)',
         }}>
           <div ref={mapInteractiveRef} style={{ width: '100%', height: '100%' }} />
 
           <div style={{
-            position: 'absolute', bottom: 14, left: 14, zIndex: 1000,
-            padding: '6px 14px', borderRadius: 10,
-            background: 'rgba(6,13,26,0.9)', backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 8,
+            position: 'absolute', bottom: 12, left: 12, zIndex: 1000,
+            padding: '6px 12px', borderRadius: 'var(--radius-sm)',
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-medium)',
+            fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 8,
           }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
-            <span>Interactive 3D Earth Layer: <b>{activeProvider.name}</b></span>
-            <span style={{ color: '#475569' }}>|</span>
+            <div style={{ width: 6, height: 6, borderRadius: 'var(--radius-full)', background: 'var(--text-primary)' }} />
+            <span>Interactive 3D Earth Layer: <b style={{ color: 'var(--text-primary)' }}>{activeProvider.name}</b></span>
+            <span style={{ color: 'var(--border-medium)' }}>|</span>
             <a
               href={`https://www.google.com/maps/@?api=1&map_action=map&center=${lat},${lon}&zoom=16&basemap=satellite`}
               target="_blank"
               rel="noreferrer"
-              style={{ color: '#3b82f6', display: 'inline-flex', alignItems: 'center', gap: 3 }}
+              style={{ color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: 3, textDecoration: 'underline' }}
             >
               <span>Google 3D Aerial</span>
               <ExternalLink size={10} />
@@ -766,48 +808,48 @@ export const BeforeAfterSlider: React.FC<Props> = ({
         </div>
       )}
 
-      {/* ── Ground Truth Metrics Bar ── */}
+      {/* ── Ground Truth Metrics Bar (Ledger Row Format) ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
         {[
           {
             label: 'Monitored Buffer Corridor',
             value: `${agent4Data?.buffer_total_area_m2?.toLocaleString() || '48,500'} m²`,
-            color: '#e2e8f0',
+            color: 'var(--text-primary)',
             sub: `${bufferDist}m around ${waterbodyName}`,
           },
           {
             label: 'Detected Discrepancy',
             value: `${changeAreaM2.toLocaleString()} m²`,
-            color: '#ef4444',
+            color: changeAreaM2 > 0 ? 'var(--status-danger)' : 'var(--status-success)',
             sub: `${changePct}% buffer encroachment`,
           },
           {
             label: 'Selected Provider',
             value: activeProvider.name.split(' ')[0],
-            color: activeProvider.color,
+            color: 'var(--text-primary)',
             sub: activeProvider.badge,
           },
           {
             label: 'GPS Coordinates',
             value: `${lat.toFixed(3)}°N, ${lon.toFixed(3)}°E`,
-            color: '#34d399',
+            color: 'var(--text-primary)',
             sub: 'Geo-referenced site center',
           },
         ].map(({ label, value, color, sub }) => (
           <div
             key={label}
+            className="card"
             style={{
-              padding: '14px 16px', borderRadius: 12,
-              background: 'rgba(15,23,42,0.8)', border: '1px solid rgba(255,255,255,0.06)',
+              padding: '12px 16px',
             }}
           >
-            <div style={{ fontSize: '0.68rem', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: 4 }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, marginBottom: 4 }}>
               {label}
             </div>
-            <div style={{ fontSize: '1rem', fontWeight: 800, color, fontFamily: 'monospace', marginBottom: 2 }}>
+            <div style={{ fontSize: '1.05rem', fontWeight: 800, color, fontFamily: 'var(--font-mono)', marginBottom: 2 }}>
               {value}
             </div>
-            <div style={{ fontSize: '0.7rem', color: '#334155' }}>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
               {sub}
             </div>
           </div>
@@ -816,3 +858,4 @@ export const BeforeAfterSlider: React.FC<Props> = ({
     </div>
   );
 };
+

@@ -6,21 +6,21 @@ import { ReviewGateBanner } from '../components/ReviewGateBanner';
 import { DossierPage } from './DossierPage';
 import { RunStatusResponse } from '../types/schemas';
 import { getRunStatus } from '../api/client';
-import { ArrowLeft, RefreshCw, AlertCircle, Activity, MapPin, Satellite, Scale } from 'lucide-react';
+import { ArrowLeft, RefreshCw, AlertCircle, BookOpen, MapPin, Satellite, Scale } from 'lucide-react';
 
 interface Props {
   runId: string;
   onBackToUpload: () => void;
 }
 
-const STATE_INFO: Record<string, { label: string; color: string; bg: string; description: string }> = {
-  ingested:             { label: 'Ingested',       color: '#94a3b8', bg: 'rgba(100,116,139,0.12)', description: 'Document received, pipeline starting…' },
-  agent1_done:          { label: 'Agent 1 Done',   color: '#3b82f6', bg: 'rgba(59,130,246,0.12)',  description: 'Paralegal extraction complete, continuing pipeline…' },
-  processing:           { label: 'Processing',     color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  description: 'Running geospatial scout & legal validator in parallel…' },
-  draft_pending_review: { label: 'Ready for Review', color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', description: 'All agents complete. Awaiting human sign-off.' },
-  manual_legal_review:  { label: 'Manual Review',  color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  description: 'Qualitative conditions flagged. Expert review required.' },
-  reviewed_confirmed:   { label: 'Sealed ✓',       color: '#10b981', bg: 'rgba(16,185,129,0.12)', description: 'Audit confirmed & legal dossier compiled.' },
-  failed:               { label: 'Failed',         color: '#ef4444', bg: 'rgba(239,68,68,0.12)',  description: 'Pipeline encountered an error.' },
+const STATE_INFO: Record<string, { label: string; stampClass: string; description: string }> = {
+  ingested:             { label: 'INGESTED',       stampClass: 'stamp-chip--pending',   description: 'Document recorded in register; initiating paralegal extraction…' },
+  agent1_done:          { label: 'PARALEGAL DONE', stampClass: 'stamp-chip--pending',   description: 'Clearance particulars parsed; proceeding to validation folios…' },
+  processing:           { label: 'AUDITING',       stampClass: 'stamp-chip--warning',   description: 'Executing vector hydrology verification & satellite spectral delta…' },
+  draft_pending_review: { label: 'PENDING REVIEW', stampClass: 'stamp-chip--warning',   description: 'All 4 folios compiled. Awaiting formal human verification.' },
+  manual_legal_review:  { label: 'MANUAL REVIEW',  stampClass: 'stamp-chip--flagged',   description: 'Qualitative conditions or unrecognized format flagged for manual review.' },
+  reviewed_confirmed:   { label: 'SEALED & ATTESTED', stampClass: 'stamp-chip--confirmed', description: 'Statutory evidence dossier formally confirmed & signed.' },
+  failed:               { label: 'AUDIT FAILED',   stampClass: 'stamp-chip--flagged',   description: 'Audit execution halted due to processing anomaly.' },
 };
 
 export const DraftReviewPage: React.FC<Props> = ({ runId, onBackToUpload }) => {
@@ -57,18 +57,21 @@ export const DraftReviewPage: React.FC<Props> = ({ runId, onBackToUpload }) => {
 
   if (loading && !status) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 20 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 16 }}>
         <div style={{
-          width: 52, height: 52,
-          border: '3px solid rgba(16,185,129,0.2)',
-          borderTopColor: '#10b981',
-          borderRadius: '50%',
-          animation: 'spin 0.9s linear infinite',
-          boxShadow: '0 0 20px rgba(16,185,129,0.15)',
+          width: 44, height: 44,
+          border: '2px solid var(--border-medium)',
+          borderTopColor: 'var(--text-primary)',
+          borderRadius: 'var(--radius-full)',
+          animation: 'spin 0.8s linear infinite',
         }} />
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '1rem', fontWeight: 700, color: '#e2e8f0', marginBottom: 6 }}>Initializing Audit Pipeline</div>
-          <div style={{ fontSize: '0.8rem', color: '#475569', fontFamily: 'JetBrains Mono, monospace' }}>run/{runId}</div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
+            Opening Statutory Case File
+          </div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+            Entry: {runId}
+          </div>
         </div>
       </div>
     );
@@ -76,13 +79,13 @@ export const DraftReviewPage: React.FC<Props> = ({ runId, onBackToUpload }) => {
 
   if (error || !status) {
     return (
-      <div style={{ maxWidth: 480, margin: '80px auto', textAlign: 'center' }}>
-        <div style={{ padding: '20px 24px', borderRadius: 14, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, textAlign: 'left' }}>
-          <AlertCircle size={20} style={{ color: '#ef4444', flexShrink: 0 }} />
-          <span style={{ fontSize: '0.9rem', color: '#fca5a5' }}>{error || 'Run details could not be loaded.'}</span>
+      <div style={{ maxWidth: 520, margin: '80px auto', textAlign: 'center' }}>
+        <div style={{ padding: '20px 24px', borderRadius: 'var(--radius-md)', background: 'var(--status-danger-bg)', border: '1px solid var(--status-danger)', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, textAlign: 'left' }}>
+          <AlertCircle size={20} style={{ color: 'var(--status-danger)', flexShrink: 0 }} />
+          <span style={{ fontSize: '0.88rem', color: 'var(--status-danger)' }}>{error || 'Case file could not be retrieved from the registry.'}</span>
         </div>
         <button onClick={onBackToUpload} className="btn-secondary">
-          <ArrowLeft size={15} /> Return to Upload
+          <ArrowLeft size={15} /> Return to Case Register
         </button>
       </div>
     );
@@ -94,70 +97,62 @@ export const DraftReviewPage: React.FC<Props> = ({ runId, onBackToUpload }) => {
 
   const si = STATE_INFO[status.state] || STATE_INFO.ingested;
   const isReady = ['draft_pending_review','manual_legal_review','reviewed_confirmed'].includes(status.state);
-  const isActive = ['ingested','agent1_done','processing'].includes(status.state);
   const hasAgent4 = !!status.agent4?.data;
 
   const sections = [
-    { key: 'pipeline',  label: 'Pipeline',  icon: Activity, available: true },
-    { key: 'findings',  label: 'Findings',  icon: MapPin,   available: !!status.agent1 },
-    { key: 'satellite', label: 'Satellite', icon: Satellite, available: hasAgent4 },
-    { key: 'review',    label: 'Review Gate', icon: Scale,  available: isReady },
+    { key: 'pipeline',  folio: 'Folio I',   label: 'Pipeline Ledger',  icon: BookOpen,  available: true },
+    { key: 'findings',  folio: 'Folio II',  label: 'Legal Mandates',   icon: MapPin,    available: !!status.agent1 },
+    { key: 'satellite', folio: 'Folio III', label: 'Ground-Truth',     icon: Satellite, available: hasAgent4 },
+    { key: 'review',    folio: 'Folio IV',  label: 'Attestation Gate', icon: Scale,     available: isReady },
   ] as const;
 
   return (
-    <div style={{ animation: 'fadeInUp 0.4s ease both' }}>
-      {/* ── Header ── */}
+    <div style={{ animation: 'fadeInUp 0.35s ease both' }}>
+      {/* ── Case File Master Header ── */}
       <div style={{
         display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start',
         justifyContent: 'space-between', gap: 16, marginBottom: 28,
-        paddingBottom: 24, borderBottom: '1px solid rgba(255,255,255,0.06)',
+        paddingBottom: 20, borderBottom: '1px solid var(--border-medium)',
       }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
           <button
             onClick={onBackToUpload}
+            className="btn-secondary"
             style={{
-              width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-              background: 'rgba(30,41,59,0.8)', border: '1px solid rgba(255,255,255,0.08)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', color: '#94a3b8', marginTop: 2,
-              transition: 'all 0.15s',
+              padding: '8px 12px',
+              gap: 6,
             }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(30,41,59,1)'; (e.currentTarget as HTMLButtonElement).style.color = '#e2e8f0'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(30,41,59,0.8)'; (e.currentTarget as HTMLButtonElement).style.color = '#94a3b8'; }}
-            title="Return to Upload"
+            title="Return to Registry Index"
           >
-            <ArrowLeft size={15} />
+            <ArrowLeft size={14} />
+            <span style={{ fontSize: '0.8rem' }}>Register</span>
           </button>
 
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
-              <h1 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.02em' }}>
-                Clearance Audit
+              <span className="folio-number">Case File</span>
+              <h1 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '1.35rem',
+                fontWeight: 800,
+                color: 'var(--text-primary)',
+                letterSpacing: '-0.01em',
+              }}>
+                Statutory Environmental Clearance Audit
               </h1>
               <code style={{
-                fontSize: '0.75rem', fontFamily: 'JetBrains Mono, monospace',
-                color: '#475569', background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                padding: '2px 10px', borderRadius: 6,
+                fontSize: '0.75rem', fontFamily: 'var(--font-mono)',
+                color: 'var(--text-primary)', background: 'var(--bg-surface-elevated)',
+                border: '1px solid var(--border-medium)',
+                padding: '2px 8px', borderRadius: 'var(--radius-sm)',
               }}>{status.run_id}</code>
-              <span style={{
-                fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.05em',
-                textTransform: 'uppercase', padding: '3px 10px', borderRadius: 99,
-                color: si.color, background: si.bg, border: `1px solid ${si.color}30`,
-                display: 'flex', alignItems: 'center', gap: 5,
-              }}>
-                {isActive && (
-                  <div style={{
-                    width: 6, height: 6, borderRadius: '50%', background: si.color,
-                    animation: 'pulse-ring 1.5s infinite',
-                  }} />
-                )}
+              <span className={`stamp-chip ${si.stampClass}`}>
                 {si.label}
               </span>
             </div>
-            <p style={{ fontSize: '0.82rem', color: '#475569' }}>
-              <span style={{ color: '#64748b' }}>{status.filename}</span>
-              <span style={{ margin: '0 8px', color: '#1e293b' }}>·</span>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+              <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{status.filename}</strong>
+              <span style={{ margin: '0 8px', color: 'var(--text-muted)' }}>·</span>
               {si.description}
             </p>
           </div>
@@ -165,103 +160,143 @@ export const DraftReviewPage: React.FC<Props> = ({ runId, onBackToUpload }) => {
 
         <button
           onClick={fetchStatus}
-          style={{
-            width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-            background: 'rgba(30,41,59,0.8)', border: '1px solid rgba(255,255,255,0.08)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', color: '#64748b', transition: 'all 0.15s',
-          }}
-          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#10b981'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#64748b'; }}
-          title="Refresh"
+          className="btn-secondary"
+          style={{ padding: '8px 12px', gap: 6, fontSize: '0.8rem' }}
+          title="Refresh Record"
         >
-          <RefreshCw size={15} />
+          <RefreshCw size={13} />
+          <span>Refresh</span>
         </button>
       </div>
 
-      {/* ── Section tabs ── */}
+      {/* ── Folio Tabs (Ledger Index Style) ── */}
       <div style={{
-        display: 'flex', gap: 4, marginBottom: 24,
-        background: 'rgba(15,23,42,0.6)', borderRadius: 12,
-        padding: 5, border: '1px solid rgba(255,255,255,0.06)',
+        display: 'flex', gap: 4, marginBottom: 28,
+        background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-sm)',
+        padding: 4, border: '1px solid var(--border-medium)',
         width: 'fit-content',
       }}>
-        {sections.map(({ key, label, icon: Icon, available }) => {
-          const isActive = activeSection === key;
+        {sections.map(({ key, folio, label, icon: Icon, available }) => {
+          const isActiveTab = activeSection === key;
           return (
             <button
               key={key}
               onClick={() => available && setActiveSection(key)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 7,
-                padding: '8px 16px', borderRadius: 8,
-                border: 'none', cursor: available ? 'pointer' : 'not-allowed',
-                background: isActive ? 'rgba(16,185,129,0.12)' : 'transparent',
-                color: isActive ? '#10b981' : available ? '#64748b' : '#1e293b',
-                fontSize: '0.82rem', fontWeight: 600,
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '7px 14px', borderRadius: 'var(--radius-sm)',
+                border: '1px solid',
+                borderColor: isActiveTab ? 'var(--border-focus)' : 'transparent',
+                cursor: available ? 'pointer' : 'not-allowed',
+                background: isActiveTab ? 'var(--bg-surface)' : 'transparent',
+                color: isActiveTab ? 'var(--text-primary)' : available ? 'var(--text-secondary)' : 'var(--text-muted)',
+                fontSize: '0.8rem', fontWeight: isActiveTab ? 700 : 500,
                 transition: 'all 0.15s',
-                opacity: available ? 1 : 0.4,
+                opacity: available ? 1 : 0.45,
+                boxShadow: isActiveTab ? 'var(--shadow-sm)' : 'none',
               }}
             >
-              <Icon size={14} />
-              {label}
+              <Icon size={13} />
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--text-muted)' }}>{folio}:</span>
+              <span>{label}</span>
               {key === 'review' && isReady && (
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: status.state === 'reviewed_confirmed' ? '#10b981' : '#f59e0b' }} />
+                <span className={`stamp-chip ${status.state === 'reviewed_confirmed' ? 'stamp-chip--confirmed' : 'stamp-chip--warning'}`} style={{ padding: '1px 5px', fontSize: '0.6rem' }}>
+                  {status.state === 'reviewed_confirmed' ? 'SEALED' : 'REQUIRED'}
+                </span>
               )}
             </button>
           );
         })}
       </div>
 
-      {/* ── Section content ── */}
-      <div style={{ animation: 'fadeIn 0.3s ease both' }}>
+      {/* ── Main Case File Container with Stitched Spine Motif ── */}
+      <div className="case-file" style={{ animation: 'fadeIn 0.25s ease both' }}>
         {activeSection === 'pipeline' && (
-          <AgentStatusTracker status={status} />
+          <div>
+            <div style={{ marginBottom: 16 }}>
+              <h2 className="folio-header" style={{ fontSize: '1.05rem', fontWeight: 700 }}>
+                <span className="folio-number">Folio I</span>
+                Autonomous Paralegal &amp; Geospatial Pipeline
+              </h2>
+            </div>
+            <AgentStatusTracker status={status} />
+          </div>
         )}
 
         {activeSection === 'findings' && (
-          <FindingsPanel status={status} />
+          <div>
+            <div style={{ marginBottom: 16 }}>
+              <h2 className="folio-header" style={{ fontSize: '1.05rem', fontWeight: 700 }}>
+                <span className="folio-number">Folio II</span>
+                Extracted Clearance Particulars &amp; Statutory Conditions
+              </h2>
+            </div>
+            <FindingsPanel status={status} />
+          </div>
         )}
 
         {activeSection === 'satellite' && hasAgent4 && (
-          <BeforeAfterSlider
-            agent4Data={status.agent4!.data as any}
-            agent1Data={status.agent1?.data as any}
-            agent3Data={status.agent3?.data as any}
-            status={status}
-          />
+          <div>
+            <div style={{ marginBottom: 16 }}>
+              <h2 className="folio-header" style={{ fontSize: '1.05rem', fontWeight: 700 }}>
+                <span className="folio-number">Folio III</span>
+                Satellite Multi-Spectral Baseline &amp; Buffer Compliance
+              </h2>
+            </div>
+            <BeforeAfterSlider
+              agent4Data={status.agent4!.data as any}
+              agent1Data={status.agent1?.data as any}
+              agent3Data={status.agent3?.data as any}
+              status={status}
+            />
+          </div>
         )}
-
 
         {activeSection === 'satellite' && !hasAgent4 && (
           <div style={{
             padding: '60px 24px', textAlign: 'center',
-            background: 'rgba(15,23,42,0.5)', borderRadius: 16,
-            border: '1px solid rgba(255,255,255,0.05)',
+            background: 'var(--bg-card)', borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-subtle)',
           }}>
-            <div style={{ fontSize: '2.5rem', marginBottom: 16 }}>🛰️</div>
-            <div style={{ fontSize: '1rem', fontWeight: 700, color: '#334155', marginBottom: 8 }}>Satellite Analysis Pending</div>
-            <div style={{ fontSize: '0.85rem', color: '#1e293b' }}>The satellite analyst will run once geospatial scouting completes.</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', marginBottom: 12, color: 'var(--text-muted)' }}>◈</div>
+            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
+              Folio III: Satellite Ground-Truth Analysis Pending
+            </div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+              Optical multi-spectral analysis will execute upon resolution of earlier folios.
+            </div>
           </div>
         )}
 
         {activeSection === 'review' && isReady && (
-          <ReviewGateBanner
-            status={status}
-            onReviewConfirmed={updated => { setStatus(updated); }}
-            onViewDossier={() => setViewingDossier(true)}
-          />
+          <div>
+            <div style={{ marginBottom: 16 }}>
+              <h2 className="folio-header" style={{ fontSize: '1.05rem', fontWeight: 700 }}>
+                <span className="folio-number">Folio IV</span>
+                Human Auditor Review &amp; Statutory Attestation
+              </h2>
+            </div>
+            <ReviewGateBanner
+              status={status}
+              onReviewConfirmed={updated => { setStatus(updated); }}
+              onViewDossier={() => setViewingDossier(true)}
+            />
+          </div>
         )}
 
         {activeSection === 'review' && !isReady && (
           <div style={{
             padding: '60px 24px', textAlign: 'center',
-            background: 'rgba(15,23,42,0.5)', borderRadius: 16,
-            border: '1px solid rgba(255,255,255,0.05)',
+            background: 'var(--bg-card)', borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-subtle)',
           }}>
-            <div style={{ fontSize: '2.5rem', marginBottom: 16 }}>⏳</div>
-            <div style={{ fontSize: '1rem', fontWeight: 700, color: '#334155', marginBottom: 8 }}>Pipeline Still Running</div>
-            <div style={{ fontSize: '0.85rem', color: '#1e293b' }}>The Review Gate unlocks once all four agents have completed.</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', marginBottom: 12, color: 'var(--text-muted)' }}>§</div>
+            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
+              Folio IV: Attestation Gate Locked
+            </div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+              The attestation gate requires completion of Paralegal and Validator folios before legal sign-off.
+            </div>
           </div>
         )}
       </div>

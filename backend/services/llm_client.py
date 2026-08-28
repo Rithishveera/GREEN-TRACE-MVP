@@ -176,15 +176,42 @@ class LLMClient:
                             cleaned = re.sub(r"\s*```$", "", cleaned)
                         parsed = json.loads(cleaned)
                         parsed["suspicious_directives"] = suspicious + parsed.get("suspicious_directives", [])
-                        
+
                         # Validate extracted values have substance
                         if parsed.get("project_name") and parsed.get("file_number"):
+                            # Determine coordinates_source from LLM response
+                            llm_coords = parsed.get("coordinates", [])
+                            if llm_coords:
+                                parsed["coordinates_source"] = "extracted"
+                            else:
+                                # LLM found no coordinates — check for state inference or flag unresolved
+                                lower_text = pdf_text.lower()
+                                matched_geo = False
+                                for location_name, geo_center in STATE_CENTERS.items():
+                                    if location_name in lower_text:
+                                        parsed["coordinates"] = [[round(geo_center[0], 6), round(geo_center[1], 6)]]
+                                        parsed["coordinates_source"] = "state_inferred"
+                                        matched_geo = True
+                                        break
+                                if not matched_geo:
+                                    parsed["coordinates_source"] = "fabricated_unresolved"
+                                    parsed["coordinates"] = []
+
+                            if not parsed.get("ec_approval_date"):
+                                parsed["ec_approval_date"] = "Date Not Specified"
+
+                            parsed["extraction_method"] = "llm"
                             return parsed
+
+
             except Exception as e:
                 logger.warning(f"Gemini LLM extraction call failed: {e}. Utilizing dynamic document parser.")
 
         # Fallback to dynamic, document-aware parser
-        return self._dynamic_document_extraction(pdf_text, pdf_path, suspicious)
+        result = self._dynamic_document_extraction(pdf_text, pdf_path, suspicious)
+        result["extraction_method"] = "regex_fallback"
+        return result
+
 
     def _dynamic_document_extraction(self, text: str, pdf_path: str, suspicious: List[str]) -> Dict[str, Any]:
         """
@@ -284,6 +311,7 @@ class LLMClient:
 
         # 4. Dynamic Coordinates Extraction
         coords: List[List[float]] = []
+        coordinates_source: str = "extracted"  # will be downgraded if we fall back
 
         # Pattern A: Decimal lat / lon pairs
         dec_matches = re.findall(
@@ -325,25 +353,39 @@ class LLMClient:
                 except ValueError:
                     pass
 
-        # Fallback coordinate derived from geographic location in text or document hash
+        # Fallback coordinate: use STATE_CENTERS if location name found in text, or block pipeline.
+        # IMPORTANT: We do NOT invent a fully fabricated coordinate from a hash.
+        # If no location signal exists, return coordinates_source='fabricated_unresolved' so
+        # the pipeline can route to MANUAL_LEGAL_REVIEW rather than silently guess.
         if not coords:
             lower_text = text.lower()
             matched_geo = False
+            matched_state_name = None
             for location_name, geo_center in STATE_CENTERS.items():
                 if location_name in lower_text:
-                    # Add slight pseudo-random displacement based on doc hash so each document gets a unique location
-                    h = int(hashlib.md5(text[:500].encode("utf-8")).hexdigest()[:4], 16)
-                    d_lat = ((h % 100) - 50) * 0.002
-                    d_lon = (((h >> 4) % 100) - 50) * 0.002
-                    coords.append([round(geo_center[0] + d_lat, 6), round(geo_center[1] + d_lon, 6)])
+                    # Keep the state center exactly — no hash-based displacement.
+                    # The displacement was hiding the fact this is an approximation.
+                    coords.append([round(geo_center[0], 6), round(geo_center[1], 6)])
                     matched_geo = True
+                    matched_state_name = location_name
                     break
-            if not matched_geo:
-                # Deterministic location in central India derived from hash
-                h = int(hashlib.md5(clean_name.encode("utf-8")).hexdigest()[:6], 16)
-                base_lat = 18.0 + ((h % 1000) / 1000.0) * 6.0
-                base_lon = 74.0 + (((h >> 8) % 1000) / 1000.0) * 8.0
-                coords.append([round(base_lat, 6), round(base_lon, 6)])
+            if matched_geo:
+                coordinates_source = "state_inferred"
+                logger.warning(
+                    f"No explicit coordinates found in document. Using state/city center for "
+                    f"'{matched_state_name}' as approximate location (coordinates_source=state_inferred). "
+                    "Geospatial results will carry reduced confidence."
+                )
+            else:
+                # No location signal at all — do NOT fabricate a coordinate.
+                # Signal this as unresolvable so the orchestrator blocks Agent 3/4.
+                coordinates_source = "fabricated_unresolved"
+                coords = []  # explicitly empty
+                logger.error(
+                    "No resolvable project location found in document. "
+                    "Coordinates cannot be inferred. Setting coordinates_source=fabricated_unresolved. "
+                    "Geospatial and satellite analysis cannot proceed automatically."
+                )
 
         # 5. Dynamic Conditions Extraction
         conditions: List[Dict[str, Any]] = []
@@ -437,4 +479,6 @@ class LLMClient:
             "ec_approval_date": approval_date,
             "conditions": conditions,
             "suspicious_directives": suspicious,
+            "coordinates_source": coordinates_source,
+            "extraction_method": "regex_fallback",
         }

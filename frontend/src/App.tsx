@@ -2,12 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { DraftReviewPage } from './pages/DraftReviewPage';
 import { listRuns } from './api/client';
 import { IngestResponse, RunStatusResponse } from './types/schemas';
-import { TreePine, Clock, CheckCircle, XCircle, AlertTriangle, ChevronRight, Plus, History, X } from 'lucide-react';
+import { Scale, ChevronRight, Plus, History, X, BookOpen } from 'lucide-react';
 
-/* ─── Landing Page ──────────────────────────────────────── */
+/* ─── Landing Page (Statutory Ledger Gazette Edition) ────── */
 const LandingPage: React.FC<{ onEnter: () => void }> = ({ onEnter }) => {
   const [mounted, setMounted] = useState(false);
-  useEffect(() => { setTimeout(() => setMounted(true), 100); }, []);
+  useEffect(() => { setTimeout(() => setMounted(true), 50); }, []);
 
   return (
     <div style={{
@@ -17,169 +17,179 @@ const LandingPage: React.FC<{ onEnter: () => void }> = ({ onEnter }) => {
       alignItems: 'center',
       justifyContent: 'center',
       position: 'relative',
-      overflow: 'hidden',
-      background: 'linear-gradient(135deg, #020917 0%, #0a1628 40%, #0d1f3c 70%, #061412 100%)',
+      background: 'var(--bg-app)',
+      padding: '40px 24px',
     }}>
-      {/* Ambient orbs */}
+      {/* Outer Paper Border Ledger Frame */}
       <div style={{
-        position: 'absolute', top: '15%', left: '10%',
-        width: 600, height: 600, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(16,185,129,0.08) 0%, transparent 70%)',
-        filter: 'blur(40px)', pointerEvents: 'none',
-      }} />
-      <div style={{
-        position: 'absolute', bottom: '10%', right: '5%',
-        width: 500, height: 500, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(52,211,153,0.06) 0%, transparent 70%)',
-        filter: 'blur(60px)', pointerEvents: 'none',
-      }} />
-
-      {/* Grid pattern */}
-      <div style={{
-        position: 'absolute', inset: 0, pointerEvents: 'none',
-        backgroundImage: `
-          linear-gradient(rgba(16,185,129,0.03) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(16,185,129,0.03) 1px, transparent 1px)
-        `,
-        backgroundSize: '60px 60px',
-      }} />
-
-      {/* Content */}
-      <div style={{
-        position: 'relative', zIndex: 10, textAlign: 'center',
-        maxWidth: 700, padding: '0 24px',
+        position: 'relative',
+        zIndex: 10,
+        textAlign: 'center',
+        maxWidth: 760,
+        width: '100%',
+        padding: '56px 40px',
+        background: 'var(--bg-surface)',
+        border: '2px solid var(--border-medium)',
+        borderRadius: 'var(--radius-md)',
+        boxShadow: 'var(--shadow-lg)',
         opacity: mounted ? 1 : 0,
-        transform: mounted ? 'translateY(0)' : 'translateY(32px)',
-        transition: 'all 0.8s cubic-bezier(0.22,1,0.36,1)',
+        transform: mounted ? 'translateY(0)' : 'translateY(16px)',
+        transition: 'all 0.4s ease-out',
       }}>
-        {/* Logo mark */}
+        {/* Top Gazette Header Rule */}
         <div style={{
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          width: 80, height: 80, borderRadius: 24,
-          background: 'linear-gradient(135deg, rgba(16,185,129,0.2) 0%, rgba(16,185,129,0.05) 100%)',
-          border: '1px solid rgba(16,185,129,0.25)',
-          marginBottom: 32,
-          boxShadow: '0 0 40px rgba(16,185,129,0.15)',
-          animation: 'float 4s ease-in-out infinite',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid var(--border-medium)',
+          paddingBottom: 14,
+          marginBottom: 36,
+          fontFamily: 'var(--font-mono)',
+          fontSize: '0.7rem',
+          color: 'var(--text-secondary)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.1em',
         }}>
-          <TreePine size={36} style={{ color: '#10b981' }} />
+          <span>Vol. MMXXVI · Issue 04</span>
+          <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Official Environmental Clearance Gazette</span>
+          <span>Ref: EC-STAT-LEDGER</span>
         </div>
 
-        {/* Brand */}
+        {/* Insignia Stamp Emblem */}
         <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 8,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 64,
+          height: 64,
+          borderRadius: 'var(--radius-full)',
+          border: '2px solid var(--text-primary)',
+          background: 'var(--bg-surface-elevated)',
+          marginBottom: 24,
+          position: 'relative',
+        }}>
+          <div style={{
+            position: 'absolute',
+            inset: 4,
+            borderRadius: 'var(--radius-full)',
+            border: '1px dashed var(--text-secondary)',
+          }} />
+          <Scale size={28} style={{ color: 'var(--text-primary)' }} />
+        </div>
+
+        {/* Department / Category Tag */}
+        <div style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: '0.72rem',
+          fontWeight: 700,
+          letterSpacing: '0.15em',
+          textTransform: 'uppercase',
+          color: 'var(--text-secondary)',
           marginBottom: 12,
         }}>
-          <span style={{
-            fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.2em',
-            textTransform: 'uppercase', color: '#10b981',
-            padding: '4px 12px', borderRadius: 99,
-            border: '1px solid rgba(16,185,129,0.3)',
-            background: 'rgba(16,185,129,0.08)',
-          }}>AI · Environmental Auditing</span>
+          Autonomous Multi-Agent Evidence Registry
         </div>
 
+        {/* Master Display Title in Fraunces Serif */}
         <h1 style={{
-          fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
-          fontWeight: 900,
-          lineHeight: 1.1,
-          marginBottom: 20,
-          letterSpacing: '-0.03em',
+          fontFamily: 'var(--font-display)',
+          fontSize: 'clamp(2.4rem, 5.5vw, 3.8rem)',
+          fontWeight: 800,
+          lineHeight: 1.08,
+          marginBottom: 22,
+          letterSpacing: '-0.02em',
+          color: 'var(--text-primary)',
         }}>
-          <span style={{ color: '#f8fafc' }}>Green</span>
-          <span style={{
-            background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}>Trace</span>
+          GreenTrace Statutory Ledger
         </h1>
 
-        {/* Quote */}
+        <div style={{
+          width: 80,
+          height: 2,
+          background: 'var(--text-primary)',
+          margin: '0 auto 28px',
+        }} />
+
+        {/* Legal Inscription Quote */}
         <blockquote style={{
-          position: 'relative',
-          fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
-          fontStyle: 'italic',
-          color: '#94a3b8',
+          fontFamily: 'var(--font-sans)',
+          fontSize: 'clamp(1rem, 2vw, 1.12rem)',
+          color: 'var(--text-secondary)',
           lineHeight: 1.7,
-          marginBottom: 48,
-          padding: '0 24px',
+          marginBottom: 40,
+          maxWidth: 620,
+          margin: '0 auto 36px',
         }}>
-          <span style={{
-            position: 'absolute', top: -10, left: 0,
-            fontSize: '4rem', color: 'rgba(16,185,129,0.15)',
-            fontFamily: 'Georgia, serif', lineHeight: 1,
-          }}>"</span>
-          The environment is not a resource to be exploited — it is a trust to be honoured.
-          Every clearance must be earned, every encroachment must be proven.
+          “The environment is not a resource to be exploited — it is a public trust to be honoured.
+          Every clearance mandate must be enforced, and every ground discrepancy proven with unassailable spatial provenance.”
           <cite style={{
-            display: 'block', marginTop: 16,
-            fontSize: '0.8rem', fontStyle: 'normal',
-            fontWeight: 600, color: '#475569',
-            letterSpacing: '0.05em', textTransform: 'uppercase',
-          }}>— GreenTrace Environmental Intelligence</cite>
+            display: 'block',
+            marginTop: 14,
+            fontFamily: 'var(--font-mono)',
+            fontSize: '0.72rem',
+            fontStyle: 'normal',
+            fontWeight: 700,
+            color: 'var(--text-muted)',
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+          }}>
+            — Statutory Verification Framework § MoEFCC / SEIAA
+          </cite>
         </blockquote>
 
-        {/* CTA */}
+        {/* CTA Button — Flat Ink Button */}
         <button
           onClick={onEnter}
+          className="btn-primary"
           style={{
-            display: 'inline-flex', alignItems: 'center', gap: 12,
-            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-            color: '#fff',
-            padding: '18px 48px',
-            borderRadius: 16,
-            border: 'none',
-            fontSize: '1.1rem',
-            fontWeight: 700,
-            letterSpacing: '0.01em',
-            cursor: 'pointer',
-            boxShadow: '0 4px 32px rgba(16,185,129,0.4), 0 0 0 0 rgba(16,185,129,0.4)',
-            transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
-            animation: 'pulse-ring 2.5s ease-out infinite',
-          }}
-          onMouseEnter={e => {
-            (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-3px) scale(1.02)';
-            (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 8px 40px rgba(16,185,129,0.55)';
-          }}
-          onMouseLeave={e => {
-            (e.currentTarget as HTMLButtonElement).style.transform = '';
-            (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 32px rgba(16,185,129,0.4)';
+            padding: '16px 40px',
+            fontSize: '1rem',
+            letterSpacing: '0.04em',
+            gap: 12,
           }}
         >
-          <TreePine size={20} />
-          <span>Begin Audit</span>
+          <BookOpen size={18} />
+          <span>Open Registry &amp; Inspect Clearance</span>
           <ChevronRight size={18} />
         </button>
 
-        <p style={{
-          marginTop: 20, fontSize: '0.8rem', color: '#334155',
-          letterSpacing: '0.05em',
+        {/* Footer Note */}
+        <div style={{
+          marginTop: 36,
+          paddingTop: 16,
+          borderTop: '1px solid var(--border-subtle)',
+          fontFamily: 'var(--font-mono)',
+          fontSize: '0.68rem',
+          color: 'var(--text-muted)',
+          display: 'flex',
+          justifyContent: 'center',
+          gap: 24,
+          flexWrap: 'wrap',
+          textTransform: 'uppercase',
+          letterSpacing: '0.06em',
         }}>
-          Autonomous · Multi-Agent · Evidence-Grade
-        </p>
+          <span>Deterministic Audit</span>
+          <span>·</span>
+          <span>Zero Silent Fabrication</span>
+          <span>·</span>
+          <span>Human-Attested Dossier</span>
+        </div>
       </div>
-
-      {/* Bottom strip */}
-      <div style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0,
-        height: 1,
-        background: 'linear-gradient(to right, transparent, rgba(16,185,129,0.3), transparent)',
-      }} />
     </div>
   );
 };
 
-/* ─── State pill colors ──────────────────────────────────── */
-const stateMeta: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  ingested:             { label: 'Ingested',         color: '#94a3b8', bg: 'rgba(100,116,139,0.12)', border: 'rgba(100,116,139,0.25)' },
-  agent1_done:          { label: 'Agent 1 Done',     color: '#3b82f6', bg: 'rgba(59,130,246,0.12)',  border: 'rgba(59,130,246,0.25)' },
-  processing:           { label: 'Processing',       color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.3)' },
-  draft_pending_review: { label: 'Pending Review',   color: '#3b82f6', bg: 'rgba(59,130,246,0.12)',  border: 'rgba(59,130,246,0.25)' },
-  manual_legal_review:  { label: 'Manual Review',    color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.3)' },
-  reviewed_confirmed:   { label: 'Confirmed ✓',      color: '#10b981', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.3)' },
-  failed:               { label: 'Failed',           color: '#ef4444', bg: 'rgba(239,68,68,0.12)',  border: 'rgba(239,68,68,0.3)' },
+/* ─── State Stamp Metadata (Replacing glowing chips) ───── */
+const stateMeta: Record<string, { label: string; stampClass: string; color: string; bg: string; border: string }> = {
+  ingested:             { label: 'INGESTED',         stampClass: 'stamp-chip--pending',   color: '#4B5D50', bg: 'rgba(75,93,80,0.1)',   border: 'rgba(28,42,32,0.2)' },
+  agent1_done:          { label: 'PARALEGAL DONE',   stampClass: 'stamp-chip--pending',   color: '#4B5D50', bg: 'rgba(75,93,80,0.1)',   border: 'rgba(28,42,32,0.2)' },
+  processing:           { label: 'IN PROGRESS',      stampClass: 'stamp-chip--warning',   color: '#9C7A24', bg: 'rgba(156,122,36,0.12)', border: '#9C7A24' },
+  draft_pending_review: { label: 'PENDING REVIEW',   stampClass: 'stamp-chip--warning',   color: '#9C7A24', bg: 'rgba(156,122,36,0.12)', border: '#9C7A24' },
+  manual_legal_review:  { label: 'MANUAL REVIEW',    stampClass: 'stamp-chip--flagged',   color: '#8B3A2B', bg: 'rgba(139,58,43,0.1)',  border: '#8B3A2B' },
+  reviewed_confirmed:   { label: 'CONFIRMED & SEALED', stampClass: 'stamp-chip--confirmed', color: '#4B6B4E', bg: 'rgba(75,107,78,0.12)', border: '#4B6B4E' },
+  failed:               { label: 'FAILED / REJECTED',stampClass: 'stamp-chip--flagged',   color: '#8B3A2B', bg: 'rgba(139,58,43,0.1)',  border: '#8B3A2B' },
 };
+
 
 /* ─── App Shell ──────────────────────────────────────────── */
 export const App: React.FC = () => {
@@ -219,13 +229,13 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#060d1a' }}>
-      {/* ── Top Nav ── */}
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-app)' }}>
+      {/* ── Top Statutory Navigation ── */}
       <header style={{
         position: 'sticky', top: 0, zIndex: 100,
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
-        background: 'rgba(6,13,26,0.92)',
-        backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid var(--border-medium)',
+        background: 'var(--bg-surface)',
+        boxShadow: 'var(--shadow-sm)',
       }}>
         <div style={{
           maxWidth: 1280, margin: '0 auto',
@@ -233,32 +243,38 @@ export const App: React.FC = () => {
           height: 64,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          {/* Logo */}
+          {/* Official Registry Logo */}
           <button
             onClick={() => { setCurrentRunId(null); }}
             style={{
-              display: 'flex', alignItems: 'center', gap: 10,
+              display: 'flex', alignItems: 'center', gap: 12,
               background: 'none', border: 'none', cursor: 'pointer',
-              padding: '6px 10px', borderRadius: 10,
+              padding: '6px 10px', borderRadius: 'var(--radius-sm)',
               transition: 'background 0.15s',
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--primary-surface)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'none')}
           >
             <div style={{
-              width: 34, height: 34, borderRadius: 10,
-              background: 'rgba(16,185,129,0.12)',
-              border: '1px solid rgba(16,185,129,0.25)',
+              width: 36, height: 36, borderRadius: 'var(--radius-sm)',
+              background: 'var(--bg-surface-elevated)',
+              border: '1px solid var(--border-medium)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <TreePine size={17} style={{ color: '#10b981' }} />
+              <Scale size={18} style={{ color: 'var(--text-primary)' }} />
             </div>
             <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.02em' }}>
-                Green<span style={{ color: '#10b981' }}>Trace</span>
+              <div style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '1.05rem',
+                fontWeight: 700,
+                color: 'var(--text-primary)',
+                letterSpacing: '-0.01em',
+              }}>
+                GreenTrace <span style={{ fontFamily: 'var(--font-sans)', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Ledger</span>
               </div>
-              <div style={{ fontSize: '0.65rem', color: '#475569', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                Environmental Auditing
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Statutory Evidence Registry
               </div>
             </div>
           </button>
@@ -271,8 +287,8 @@ export const App: React.FC = () => {
                 className="btn-secondary"
                 style={{ fontSize: '0.8rem', padding: '6px 14px' }}
               >
-                <Plus size={14} style={{ color: '#10b981' }} />
-                New Audit
+                <Plus size={14} style={{ color: 'var(--text-primary)' }} />
+                New Clearance Audit
               </button>
             )}
 
@@ -283,33 +299,37 @@ export const App: React.FC = () => {
                 className="btn-secondary"
                 style={{ fontSize: '0.8rem', padding: '6px 14px', gap: 8 }}
               >
-                <History size={14} style={{ color: '#64748b' }} />
-                <span>History</span>
+                <History size={14} style={{ color: 'var(--text-secondary)' }} />
+                <span>Case Registry</span>
                 <span style={{
-                  fontSize: '0.7rem', fontWeight: 700,
-                  background: 'rgba(16,185,129,0.15)', color: '#10b981',
-                  padding: '1px 6px', borderRadius: 99,
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.68rem', fontWeight: 700,
+                  background: 'var(--primary-surface)', color: 'var(--text-primary)',
+                  border: '1px solid var(--border-medium)',
+                  padding: '1px 6px', borderRadius: 'var(--radius-sm)',
                 }}>{runsHistory.length}</span>
               </button>
 
               {showHistory && (
                 <div style={{
                   position: 'absolute', right: 0, top: 'calc(100% + 8px)',
-                  width: 360, maxHeight: 480, overflowY: 'auto',
-                  background: '#0d1929', border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: 14, boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+                  width: 380, maxHeight: 480, overflowY: 'auto',
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border-medium)',
+                  borderRadius: 'var(--radius-md)',
+                  boxShadow: 'var(--shadow-lg)',
                   zIndex: 200,
-                  animation: 'scaleIn 0.2s ease',
+                  animation: 'fadeInUp 0.2s ease',
                   transformOrigin: 'top right',
                 }}>
-                  <div style={{ padding: '14px 14px 10px' }}>
+                  <div style={{ padding: '14px 14px 10px', borderBottom: '1px solid var(--border-subtle)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                        Recent Audits
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                        Archived Case Files
                       </span>
                       <button
                         onClick={() => setShowHistory(false)}
-                        style={{ color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1 }}
+                        style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1 }}
                       >
                         <X size={14} />
                       </button>
@@ -318,21 +338,21 @@ export const App: React.FC = () => {
                       type="text"
                       value={historySearch}
                       onChange={e => setHistorySearch(e.target.value)}
-                      placeholder="Search by ID, file or status..."
+                      placeholder="Filter by Run ID, filename or status…"
                       style={{
                         width: '100%', padding: '7px 12px',
-                        background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: 8, color: '#e2e8f0',
+                        background: 'var(--bg-surface-elevated)',
+                        border: '1px solid var(--border-medium)',
+                        borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)',
                         fontSize: '0.8rem', outline: 'none',
-                        fontFamily: 'Inter, sans-serif',
+                        fontFamily: 'var(--font-mono)',
                       }}
                     />
                   </div>
-                  <div style={{ padding: '0 8px 10px' }}>
+                  <div style={{ padding: '8px' }}>
                     {filteredRuns.length === 0 ? (
-                      <div style={{ padding: '20px', textAlign: 'center', color: '#475569', fontSize: '0.8rem' }}>
-                        {runsHistory.length === 0 ? 'No audits yet.' : 'No matches.'}
+                      <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', fontFamily: 'var(--font-mono)' }}>
+                        {runsHistory.length === 0 ? 'No prior case files recorded.' : 'No matching entries found.'}
                       </div>
                     ) : filteredRuns.map(r => {
                       const sm = stateMeta[r.state] || stateMeta.ingested;
@@ -342,30 +362,30 @@ export const App: React.FC = () => {
                           key={r.run_id}
                           onClick={() => { setCurrentRunId(r.run_id); setShowHistory(false); }}
                           style={{
-                            padding: '10px 12px', borderRadius: 10, cursor: 'pointer',
+                            padding: '10px 12px',
+                            borderRadius: 'var(--radius-sm)',
+                            cursor: 'pointer',
                             marginBottom: 4,
-                            background: isCurrent ? 'rgba(16,185,129,0.08)' : 'transparent',
-                            border: `1px solid ${isCurrent ? 'rgba(16,185,129,0.2)' : 'transparent'}`,
+                            background: isCurrent ? 'var(--bg-surface-elevated)' : 'transparent',
+                            border: `1px solid ${isCurrent ? 'var(--border-focus)' : 'var(--border-subtle)'}`,
                             transition: 'all 0.15s',
                           }}
-                          onMouseEnter={e => { if (!isCurrent) (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.04)'; }}
+                          onMouseEnter={e => { if (!isCurrent) (e.currentTarget as HTMLDivElement).style.background = 'var(--primary-surface)'; }}
                           onMouseLeave={e => { if (!isCurrent) (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
                         >
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: '#94a3b8' }}>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>
                               {r.run_id}
                             </span>
-                            <span style={{
-                              fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.04em',
-                              textTransform: 'uppercase', padding: '2px 8px', borderRadius: 99,
-                              color: sm.color, background: sm.bg, border: `1px solid ${sm.border}`,
-                            }}>{sm.label}</span>
+                            <span className={`stamp-chip ${sm.stampClass}`}>
+                              {sm.label}
+                            </span>
                           </div>
-                          <div style={{ fontSize: '0.78rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {r.filename}
                           </div>
-                          <div style={{ fontSize: '0.7rem', color: '#334155', marginTop: 3, fontFamily: 'JetBrains Mono, monospace' }}>
-                            {r.created_at.slice(0, 16).replace('T', ' ')}
+                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: 3, fontFamily: 'var(--font-mono)' }}>
+                            {r.created_at.slice(0, 16).replace('T', ' ')} UTC
                           </div>
                         </div>
                       );
@@ -378,8 +398,8 @@ export const App: React.FC = () => {
         </div>
       </header>
 
-      {/* ── Main Content ── */}
-      <main style={{ flex: 1, maxWidth: 1280, width: '100%', margin: '0 auto', padding: '32px 24px' }}>
+      {/* ── Main Content Area ── */}
+      <main style={{ flex: 1, maxWidth: 1280, width: '100%', margin: '0 auto', padding: '36px 24px' }}>
         {currentRunId ? (
           <DraftReviewPage
             runId={currentRunId}
@@ -390,21 +410,23 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      {/* ── Footer ── */}
+      {/* ── Statutory Footer ── */}
       <footer style={{
-        borderTop: '1px solid rgba(255,255,255,0.05)',
+        borderTop: '1px solid var(--border-subtle)',
+        background: 'var(--bg-surface)',
         padding: '16px 24px',
         textAlign: 'center',
-        fontSize: '0.7rem', color: '#1e293b',
-        letterSpacing: '0.04em',
+        fontFamily: 'var(--font-mono)',
+        fontSize: '0.68rem', color: 'var(--text-muted)',
+        letterSpacing: '0.06em',
       }}>
-        GreenTrace MVP · FastAPI · Sentinel-2 GEE · Overpass OSM · Gemini LLM · ReportLab
+        GreenTrace MVP · Statutory Environmental Clearance Audit Ledger · India MoEFCC / SEIAA Evidence Format
       </footer>
     </div>
   );
 };
 
-/* ─── Upload Dashboard ───────────────────────────────────── */
+/* ─── Upload Dashboard (Folio Ingestion Stage) ───────────── */
 import { UploadZone } from './components/UploadZone';
 
 const UploadDashboard: React.FC<{
@@ -413,88 +435,83 @@ const UploadDashboard: React.FC<{
   onSelectRun: (id: string) => void;
 }> = ({ onIngestSuccess, recentRuns, onSelectRun }) => {
   const pipeline = [
-    { num: 1, label: 'Paralegal Extraction', desc: 'Reads the EC PDF, extracts project name, coordinates, file number, EC date and all environmental conditions.', color: '#3b82f6', icon: '📄' },
-    { num: 2, label: 'Legal Validator',       desc: 'Queries the PARIVESH portal registry, verifies clearance status and tracks amendment history.',                color: '#8b5cf6', icon: '⚖️' },
-    { num: 3, label: 'Geospatial Scout',      desc: 'Fetches OSM waterbody geometry via Overpass API and applies exact UTM metric buffer calculations.',           color: '#f59e0b', icon: '🗺️' },
-    { num: 4, label: 'Satellite Analyst',     desc: 'Runs Sentinel-2 NDBI spectral delta across the buffer, calculating m² of built-up encroachment.',            color: '#10b981', icon: '🛰️' },
+    { num: 1, folio: 'Folio I', label: 'Paralegal Extraction', desc: 'Parses the statutory EC document, extracting project identity, geospatial coordinates, file numbers, approval dates, and verbatim conditions.', color: 'var(--text-primary)', icon: '§' },
+    { num: 2, folio: 'Folio II', label: 'Legal Validator', desc: 'Validates file number against MoEFCC / State SEIAA statutory portal naming patterns; surfaces live registry limitations explicitly.', color: 'var(--text-primary)', icon: '⚖' },
+    { num: 3, folio: 'Folio III', label: 'Geospatial Scout', desc: 'Queries OpenStreetMap Overpass vector waterbody geometry and constructs verified UTM metric buffer polygons.', color: 'var(--text-primary)', icon: '⌖' },
+    { num: 4, folio: 'Folio IV', label: 'Satellite Analyst', desc: 'Computes Sentinel-2 multi-spectral delta across the buffer zone, calculating physical m² built-up footprint changes.', color: 'var(--text-primary)', icon: '◈' },
   ];
 
   const recent5 = recentRuns.slice(0, 5);
 
   return (
-    <div style={{ animation: 'fadeInUp 0.5s ease both' }}>
-      {/* Page header */}
-      <div style={{ marginBottom: 40, maxWidth: 640 }}>
+    <div style={{ animation: 'fadeInUp 0.3s ease both' }}>
+      {/* Folio Page Header */}
+      <div style={{ marginBottom: 36, maxWidth: 720 }}>
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
-          marginBottom: 14, padding: '4px 12px', borderRadius: 99,
-          background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)',
+          marginBottom: 12,
         }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', animation: 'pulse-ring 2s infinite' }} />
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#10b981', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            Autonomous AI Pipeline · Ready
+          <span className="folio-number">
+            Section 01 · Ingestion &amp; Dispatch
           </span>
         </div>
         <h1 style={{
-          fontSize: 'clamp(1.8rem, 4vw, 2.6rem)',
-          fontWeight: 900, letterSpacing: '-0.03em',
-          color: '#f1f5f9', marginBottom: 12, lineHeight: 1.15,
+          fontFamily: 'var(--font-display)',
+          fontSize: 'clamp(1.9rem, 4vw, 2.7rem)',
+          fontWeight: 800, letterSpacing: '-0.02em',
+          color: 'var(--text-primary)', marginBottom: 12, lineHeight: 1.15,
         }}>
-          Environmental Clearance<br />
-          <span style={{
-            background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-          }}>Discrepancy Audit</span>
+          Environmental Clearance Discrepancy Audit
         </h1>
-        <p style={{ fontSize: '1rem', color: '#64748b', lineHeight: 1.7, maxWidth: 520 }}>
-          Upload an official MoEFCC / SEIAA Environmental Clearance PDF. Four autonomous agents verify the clearance, map the buffer zone, and compile statutory evidence.
+        <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: 1.65, maxWidth: 640 }}>
+          Submit an official MoEFCC or State SEIAA Environmental Clearance grant. Four sequential agents parse statutory conditions, cross-reference vector hydrology, and audit physical ground compliance.
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 28, alignItems: 'start' }}>
-        {/* Left: Upload + Pipeline */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {/* Upload Card */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 32, alignItems: 'start' }}>
+        {/* Left: Ingestion + Agent Architecture */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+          {/* Upload Zone Card */}
           <UploadZone onIngestSuccess={onIngestSuccess} />
 
-          {/* Pipeline Steps */}
+          {/* Sequential Agent Ledgers */}
           <div>
-            <div style={{ marginBottom: 16 }}>
-              <h2 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                Autonomous Pipeline — 4 Agents
-              </h2>
+            <div style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="folio-number">
+                Audit Sequence — 4 Autonomous Folios
+              </span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {pipeline.map((step, i) => (
+              {pipeline.map((step) => (
                 <div
                   key={step.num}
                   className="card"
                   style={{
-                    padding: 18,
-                    animationName: 'fadeInUp',
-                    animationDuration: '0.5s',
-                    animationDelay: `${i * 0.08}s`,
-                    animationFillMode: 'both',
+                    padding: '18px 20px',
+                    background: 'var(--bg-card)',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                     <div style={{
-                      width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-                      background: `${step.color}14`,
-                      border: `1px solid ${step.color}30`,
+                      width: 32, height: 32, borderRadius: 'var(--radius-sm)', flexShrink: 0,
+                      background: 'var(--bg-surface-elevated)',
+                      border: '1px solid var(--border-medium)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '1.1rem',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '0.9rem',
+                      fontWeight: 700,
+                      color: 'var(--text-primary)',
                     }}>
                       {step.icon}
                     </div>
                     <div>
-                      <div style={{ fontSize: '0.65rem', fontWeight: 700, color: step.color, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>
-                        Agent {step.num}
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 2 }}>
+                        {step.folio} · Agent {step.num}
                       </div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#e2e8f0', marginBottom: 6 }}>
+                      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
                         {step.label}
                       </div>
-                      <p style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: 1.55 }}>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.55 }}>
                         {step.desc}
                       </p>
                     </div>
@@ -505,69 +522,56 @@ const UploadDashboard: React.FC<{
           </div>
         </div>
 
-        {/* Right: Recent audits */}
+        {/* Right: Recent Case Files */}
         <div>
           <div style={{ marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h2 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-              Recent Audits
-            </h2>
-            <span style={{ fontSize: '0.75rem', color: '#334155' }}>{recentRuns.length} total</span>
+            <span className="folio-number">
+              Recent Case Ledger
+            </span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--text-muted)' }}>{recentRuns.length} recorded</span>
           </div>
 
           {recent5.length === 0 ? (
             <div style={{
-              padding: '40px 24px', textAlign: 'center',
-              background: 'rgba(15,23,42,0.5)', border: '1px solid rgba(255,255,255,0.05)',
-              borderRadius: 14,
+              padding: '36px 20px', textAlign: 'center',
+              background: 'var(--bg-card)', border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-md)',
             }}>
-              <div style={{ fontSize: '2rem', marginBottom: 12 }}>📋</div>
-              <div style={{ fontSize: '0.85rem', color: '#475569' }}>No audits yet. Upload an EC document to begin.</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', marginBottom: 8, color: 'var(--text-muted)' }}>◈</div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>No case files recorded yet.</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>Upload an EC grant document to open the first case file.</div>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {recent5.map(r => {
                 const sm = stateMeta[r.state] || stateMeta.ingested;
-                const StateIcon = r.state === 'reviewed_confirmed' ? CheckCircle
-                  : r.state === 'failed' ? XCircle
-                  : r.state === 'manual_legal_review' ? AlertTriangle
-                  : Clock;
                 return (
                   <div
                     key={r.run_id}
                     onClick={() => onSelectRun(r.run_id)}
                     className="card"
                     style={{
-                      padding: '14px 16px', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', gap: 14,
+                      padding: '12px 16px', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 12,
                     }}
                   >
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-                      background: sm.bg, border: `1px solid ${sm.border}`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      <StateIcon size={16} style={{ color: sm.color }} />
-                    </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
-                        <span style={{ fontSize: '0.72rem', fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, color: '#64748b' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <span style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-primary)' }}>
                           {r.run_id}
                         </span>
-                        <span style={{
-                          fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.04em',
-                          padding: '2px 7px', borderRadius: 99, textTransform: 'uppercase',
-                          color: sm.color, background: sm.bg, border: `1px solid ${sm.border}`,
-                          flexShrink: 0, marginLeft: 8,
-                        }}>{sm.label}</span>
+                        <span className={`stamp-chip ${sm.stampClass}`}>
+                          {sm.label}
+                        </span>
                       </div>
-                      <div style={{ fontSize: '0.8rem', color: '#e2e8f0', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {r.filename}
                       </div>
-                      <div style={{ fontSize: '0.7rem', color: '#334155', marginTop: 2, fontFamily: 'JetBrains Mono, monospace' }}>
-                        {r.created_at.slice(0, 16).replace('T', ' ')}
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: 3, fontFamily: 'var(--font-mono)' }}>
+                        {r.created_at.slice(0, 16).replace('T', ' ')} UTC
                       </div>
                     </div>
-                    <ChevronRight size={14} style={{ color: '#334155', flexShrink: 0 }} />
+                    <ChevronRight size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                   </div>
                 );
               })}
@@ -578,3 +582,4 @@ const UploadDashboard: React.FC<{
     </div>
   );
 };
+

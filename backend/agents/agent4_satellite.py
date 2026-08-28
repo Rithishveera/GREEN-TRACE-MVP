@@ -51,15 +51,27 @@ async def run_agent4_satellite(
         pre_ec_thumbnail_url=sat_output.get("pre_ec_thumbnail_url", ""),
         post_ec_thumbnail_url=sat_output.get("post_ec_thumbnail_url", ""),
         change_heatmap_url=sat_output.get("change_heatmap_url", ""),
-        notes=sat_output.get("notes", "")
+        notes=sat_output.get("notes", ""),
+        analysis_mode=sat_output.get("analysis_mode", "offline_demo_simulation"),
     )
-    
-    confidence = 0.92
+
+    # Surface simulation mode prominently
+    if data.analysis_mode == "offline_demo_simulation":
+        warnings.append(
+            "[SIMULATION MODE] No live Google Earth Engine data was queried. "
+            "Satellite findings are hash-derived from document metadata only and do NOT "
+            "represent real-world observations of this site. Confidence will be capped at RED."
+        )
+        confidence = 0.50  # simulation always gets reduced confidence
+    else:
+        confidence = 0.92
+
     if data.cloud_cover_pct and data.cloud_cover_pct > 15.0:
         confidence -= 0.15
         warnings.append(f"Cloud cover was {data.cloud_cover_pct}%, reducing optical confidence.")
 
     status = "flagged" if data.discrepancy_detected else "success"
+
 
     evidence = [
         EvidenceItem(

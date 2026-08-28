@@ -84,7 +84,12 @@ class PariveshClient:
 
         # 3. Formulate Verification Output
         if registry_meta.get("is_valid_format"):
-            # Valid statutory EC proposal format
+            # Valid statutory EC proposal format recognized
+            live_note = (
+                "Format validated only. Live registry confirmation of this specific proposal "
+                "is not yet implemented. Gateway reachability was checked; per-proposal "
+                "record lookup requires a dedicated PARIVESH API endpoint."
+            )
             return {
                 "status": "verified_active",
                 "is_valid": True,
@@ -94,25 +99,33 @@ class PariveshClient:
                 "sector": registry_meta.get("sector", "Industrial Project"),
                 "category": registry_meta.get("category", "Category A"),
                 "portal_url": portal_url,
-                "gateway_status": network_result or "Statutory Registry Validated",
+                "gateway_status": network_result or "Gateway offline or unreachable",
                 "amendment_history": registry_meta.get("amendment_history", []),
-                "verification_notes": f"Proposal #{clean_file_no} verified against MoEFCC PARIVESH statutory registry.",
+                "verification_notes": live_note,
             }
         else:
-            # Fallback for irregular or non-standard file formats
+            # File number does not match any known statutory pattern.
+            # Do NOT claim verified_active — this must trigger requires_manual_review.
             return {
-                "status": "verified_active",
-                "is_valid": True,
+                "status": "format_unrecognized",
+                "is_valid": False,
                 "file_number": clean_file_no,
-                "issuing_authority": "State Environmental Impact Assessment Authority (SEIAA)",
-                "state": "State Authority",
-                "sector": "Environmental Clearance Project",
-                "category": "Category B",
+                "issuing_authority": "Unknown — format not recognized",
+                "state": "Unresolved",
+                "sector": "Unresolved",
+                "category": "Unresolved",
                 "portal_url": portal_url,
-                "gateway_status": network_result or "Portal Record Checked",
+                "gateway_status": network_result or "Gateway offline or unreachable",
                 "amendment_history": [],
-                "verification_notes": f"Clearance proposal #{clean_file_no} registered under State SEIAA portal.",
+                "verification_notes": (
+                    f"File number '{clean_file_no}' does not match any known statutory pattern "
+                    "(IA/STATE/SECTOR/ID/YEAR, SEIAA/STATE/..., or J-NNNN legacy). "
+                    "Format validated only. Live registry confirmation of this specific proposal "
+                    "is not yet implemented. Manual verification required."
+                ),
+                "reason": "File number format does not match any known MoEFCC/SEIAA statutory pattern.",
             }
+
 
     def _parse_file_number_structure(self, file_no: str) -> Dict[str, Any]:
         """
@@ -166,12 +179,13 @@ class PariveshClient:
                 "amendment_history": [],
             }
 
-        # Pattern 4: General alphanumeric format with at least 5 chars
+        # Pattern 4: Unrecognized format — return False, not a permissive True.
+        # A string that merely happens to be 5+ characters is NOT a valid file number.
         return {
-            "is_valid_format": len(file_no) >= 5,
-            "authority": "State Environmental Impact Assessment Authority (SEIAA)",
-            "state": "State Jurisdiction",
-            "sector": "Industrial / Infrastructure",
-            "category": "Category B",
+            "is_valid_format": False,
+            "authority": "Unknown",
+            "state": "Unknown",
+            "sector": "Unknown",
+            "category": "Unknown",
             "amendment_history": [],
         }

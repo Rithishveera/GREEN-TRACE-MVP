@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { UploadCloud, FileText, AlertCircle, Sparkles, CheckCircle2, X } from 'lucide-react';
+import { FileUp, FileText, AlertCircle, Sparkles, CheckCircle2, X } from 'lucide-react';
 import { ingestPdf, ingestDemoPdf } from '../api/client';
 import { IngestResponse } from '../types/schemas';
 
@@ -8,9 +8,9 @@ interface UploadZoneProps {
 }
 
 const STEPS = [
-  'Uploading & validating PDF structure…',
-  'Extracting coordinates & legal conditions…',
-  'Spawning autonomous agent pipeline…',
+  'Registering clearance document in ledger…',
+  'Extracting GPS coordinates & statutory clauses…',
+  'Initializing multi-agent audit pipeline…',
 ];
 
 export const UploadZone: React.FC<UploadZoneProps> = ({ onIngestSuccess }) => {
@@ -23,11 +23,11 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onIngestSuccess }) => {
 
   const handleFile = async (file: File) => {
     if (!file.name.toLowerCase().endsWith('.pdf')) {
-      setError('Please upload a valid Environmental Clearance PDF document.');
+      setError('Please submit an authentic Environmental Clearance PDF document.');
       return;
     }
     if (file.size > 50 * 1024 * 1024) {
-      setError('File size exceeds the 50 MB limit.');
+      setError('Document file size exceeds the 50 MB registry limit.');
       return;
     }
 
@@ -43,7 +43,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onIngestSuccess }) => {
       const res = await ingestPdf(file);
       onIngestSuccess(res);
     } catch (err: any) {
-      setError(err.message || 'Failed to ingest the Environmental Clearance PDF.');
+      setError(err.message || 'Failed to ingest and parse the Environmental Clearance document.');
     } finally {
       clearTimeout(t1); clearTimeout(t2);
       setLoading(false);
@@ -70,7 +70,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onIngestSuccess }) => {
       const res = await ingestDemoPdf();
       onIngestSuccess(res);
     } catch (err: any) {
-      setError(err.message || 'Failed to load demo clearance.');
+      setError(err.message || 'Failed to load demo clearance grant.');
     } finally {
       clearTimeout(t1); clearTimeout(t2);
       setLoading(false);
@@ -82,14 +82,13 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onIngestSuccess }) => {
     <div
       style={{
         background: isDragging
-          ? 'rgba(16,185,129,0.06)'
-          : 'rgba(15,23,42,0.7)',
-        border: `2px ${isDragging ? 'dashed' : 'solid'} ${isDragging ? 'rgba(16,185,129,0.5)' : 'rgba(255,255,255,0.07)'}`,
-        borderRadius: 20,
+          ? 'var(--bg-surface-elevated)'
+          : 'var(--bg-card)',
+        border: `2px dashed ${isDragging ? 'var(--border-focus)' : 'var(--border-medium)'}`,
+        borderRadius: 'var(--radius-md)',
         padding: '36px 32px',
-        transition: 'all 0.25s ease',
-        transform: isDragging ? 'scale(1.01)' : 'scale(1)',
-        boxShadow: isDragging ? '0 0 40px rgba(16,185,129,0.12)' : 'none',
+        transition: 'all 0.15s ease',
+        boxShadow: isDragging ? 'var(--shadow-md)' : 'var(--shadow-sm)',
       }}
       onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
       onDragLeave={() => setIsDragging(false)}
@@ -103,69 +102,54 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onIngestSuccess }) => {
         onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]); }}
       />
 
-      {/* Upload icon */}
+      {/* Upload icon insignia */}
       <div style={{
-        display: 'flex', justifyContent: 'center', marginBottom: 20,
+        display: 'flex', justifyContent: 'center', marginBottom: 18,
       }}>
         <div style={{
-          width: 68, height: 68, borderRadius: 20,
-          background: 'rgba(16,185,129,0.08)',
-          border: '1px solid rgba(16,185,129,0.2)',
+          width: 56, height: 56, borderRadius: 'var(--radius-sm)',
+          background: 'var(--bg-surface-elevated)',
+          border: '1px solid var(--border-medium)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: loading ? '0 0 24px rgba(16,185,129,0.2)' : 'none',
-          transition: 'all 0.3s',
         }}>
           {loading ? (
             <div style={{
-              width: 28, height: 28,
-              border: '3px solid rgba(16,185,129,0.3)',
-              borderTopColor: '#10b981',
-              borderRadius: '50%',
+              width: 24, height: 24,
+              border: '2px solid var(--border-medium)',
+              borderTopColor: 'var(--text-primary)',
+              borderRadius: 'var(--radius-full)',
               animation: 'spin 0.8s linear infinite',
             }} />
           ) : (
-            <UploadCloud size={28} style={{ color: '#10b981' }} />
+            <FileUp size={24} style={{ color: 'var(--text-primary)' }} />
           )}
         </div>
       </div>
 
-      {/* Text */}
+      {/* Headings */}
       <div style={{ textAlign: 'center', marginBottom: 20 }}>
-        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#f1f5f9', marginBottom: 8, letterSpacing: '-0.01em' }}>
-          {loading ? 'Processing Clearance Document' : 'Upload EC Document'}
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
+          {loading ? 'Processing Document Ingestion' : 'Submit Environmental Clearance Document'}
         </h3>
-        <p style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.6, maxWidth: 400, margin: '0 auto' }}>
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6, maxWidth: 460, margin: '0 auto' }}>
           {loading
             ? STEPS[stepIdx]
-            : 'Drop your MoEFCC / SEIAA approval PDF here, or browse to select. Max 50 MB.'}
+            : 'Drop an official MoEFCC / SEIAA approval grant PDF here, or select from local storage. Limit 50 MB.'}
         </p>
       </div>
 
-      {/* Loading progress */}
+      {/* Ingestion progress note */}
       {loading && (
-        <div style={{ marginBottom: 20 }}>
+        <div style={{ marginBottom: 20, textAlign: 'center' }}>
           <div style={{
-            background: 'rgba(16,185,129,0.08)', borderRadius: 8,
-            padding: '8px 16px',
-            display: 'flex', alignItems: 'center', gap: 10,
+            display: 'inline-flex', alignItems: 'center', gap: 10,
+            background: 'var(--bg-surface-elevated)',
+            border: '1px solid var(--border-medium)',
+            padding: '8px 18px', borderRadius: 'var(--radius-sm)',
           }}>
-            <div style={{
-              width: 8, height: 8, borderRadius: '50%',
-              background: '#10b981', animation: 'pulse-ring 1.5s infinite',
-            }} />
-            <span style={{ fontSize: '0.8rem', color: '#34d399', fontFamily: 'JetBrains Mono, monospace' }}>
-              {STEPS[stepIdx]}
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+              ↳ {STEPS[stepIdx]}
             </span>
-          </div>
-          {/* Step dots */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 10 }}>
-            {STEPS.map((_, i) => (
-              <div key={i} style={{
-                width: i <= stepIdx ? 20 : 6, height: 6, borderRadius: 3,
-                background: i <= stepIdx ? '#10b981' : 'rgba(255,255,255,0.1)',
-                transition: 'all 0.4s',
-              }} />
-            ))}
           </div>
         </div>
       )}
@@ -174,66 +158,67 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onIngestSuccess }) => {
       {selectedFile && !loading && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10,
-          padding: '10px 14px', borderRadius: 10, marginBottom: 16,
-          background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)',
+          padding: '10px 14px', borderRadius: 'var(--radius-sm)', marginBottom: 16,
+          background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-medium)',
         }}>
-          <FileText size={16} style={{ color: '#10b981', flexShrink: 0 }} />
-          <span style={{ fontSize: '0.8rem', color: '#e2e8f0', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <FileText size={16} style={{ color: 'var(--text-primary)', flexShrink: 0 }} />
+          <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {selectedFile.name}
           </span>
-          <span style={{ fontSize: '0.7rem', color: '#475569', flexShrink: 0 }}>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>
             {(selectedFile.size / 1024 / 1024).toFixed(1)} MB
           </span>
-          <button onClick={() => setSelectedFile(null)} style={{ color: '#475569', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1 }}>
-            <X size={12} />
+          <button onClick={() => setSelectedFile(null)} style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1 }}>
+            <X size={13} />
           </button>
         </div>
       )}
 
       {/* Buttons */}
       {!loading && (
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <button
             onClick={() => fileInputRef.current?.click()}
             className="btn-primary"
+            style={{ padding: '10px 22px' }}
           >
             <FileText size={15} />
-            <span>Browse PDF</span>
+            <span>Select PDF Grant</span>
           </button>
           <button
             onClick={handleDemo}
             className="btn-secondary"
-            style={{ borderColor: 'rgba(16,185,129,0.25)', color: '#34d399' }}
+            style={{ padding: '10px 20px' }}
           >
-            <Sparkles size={15} style={{ color: '#10b981' }} />
-            <span>Load Demo EC</span>
+            <Sparkles size={14} style={{ color: 'var(--text-secondary)' }} />
+            <span>Load Demo Grant (Bhadra Steel)</span>
           </button>
         </div>
       )}
 
-      {/* Error */}
+      {/* Error notification */}
       {error && (
         <div style={{
-          marginTop: 16, padding: '12px 14px', borderRadius: 10,
-          background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
+          marginTop: 16, padding: '12px 14px', borderRadius: 'var(--radius-sm)',
+          background: 'var(--status-danger-bg)', border: '1px solid var(--status-danger)',
           display: 'flex', alignItems: 'flex-start', gap: 10,
         }}>
-          <AlertCircle size={15} style={{ color: '#ef4444', flexShrink: 0, marginTop: 1 }} />
-          <span style={{ fontSize: '0.8rem', color: '#fca5a5', lineHeight: 1.5 }}>{error}</span>
+          <AlertCircle size={15} style={{ color: 'var(--status-danger)', flexShrink: 0, marginTop: 1 }} />
+          <span style={{ fontSize: '0.82rem', color: 'var(--status-danger)', lineHeight: 1.5 }}>{error}</span>
         </div>
       )}
 
-      {/* Footer features */}
+      {/* Statutory Features strip */}
       {!loading && (
         <div style={{
-          marginTop: 20, paddingTop: 16,
-          borderTop: '1px solid rgba(255,255,255,0.05)',
-          display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 16,
+          marginTop: 24, paddingTop: 16,
+          borderTop: '1px solid var(--border-subtle)',
+          display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 20,
         }}>
-          {['Single EC PDF', 'UTM Metric Buffering', 'Deterministic Scoring'].map(feat => (
-            <div key={feat} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', color: '#334155' }}>
-              <CheckCircle2 size={12} style={{ color: '#10b981' }} />
-              {feat}
+          {['PDF Verbatim Condition Parsing', 'Vector Hydrology Setbacks', 'Deterministic Scoring & Provenance'].map(feat => (
+            <div key={feat} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+              <CheckCircle2 size={12} style={{ color: 'var(--text-primary)' }} />
+              <span>{feat}</span>
             </div>
           ))}
         </div>
@@ -241,3 +226,4 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onIngestSuccess }) => {
     </div>
   );
 };
+

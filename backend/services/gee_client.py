@@ -188,8 +188,10 @@ class GEEClient:
                     "post_ec_thumbnail_url": post_url,
                     "change_heatmap_url": change_url,
                     "spectral_layers": sim_layers,
-                    "notes": f"Optical Sentinel-2 spectral analysis completed around {waterbody_name}."
+                    "notes": f"Optical Sentinel-2 spectral analysis completed around {waterbody_name}.",
+                    "analysis_mode": "live_gee",
                 }
+
         except Exception as e:
             logger.warning(f"GEE execution failed: {e}. Falling back to dynamic simulation engine.")
 
@@ -235,9 +237,13 @@ class GEEClient:
 
         h_str = f"{project_name}_{ec_date.isoformat()}_{buffer_distance_m}"
         hash_val = int(hashlib.md5(h_str.encode("utf-8")).hexdigest()[:6], 16)
-        
-        change_pct = round(7.5 + ((hash_val % 170) / 10.0), 2)
-        change_area_m2 = round(total_area_m2 * (change_pct / 100.0), 2)
+
+        # Rebalanced: signed range so ~50% of runs produce no discrepancy.
+        # Old code: 7.5 + (hash_val % 170)/10  → always positive (7.5…25.5%), always flagged.
+        # New code: signed value so negative/zero change is plausible (≈ half of runs).
+        signed_val = (hash_val % 200) - 100      # range [-100, +99]
+        change_pct = round(signed_val / 10.0, 2)  # range [-10.0%, +9.9%]
+        change_area_m2 = max(0.0, round(total_area_m2 * (change_pct / 100.0), 2))
 
         spectral_layers = self._generate_all_spectral_layers(
             ec_date=ec_date,
@@ -255,11 +261,12 @@ class GEEClient:
         ndbi_layer = spectral_layers[0]
 
         return {
-            "sensor_used": "Sentinel-2 (MSI Harmonized L2A)",
+            # Honest sensor label — this is a simulation, not live GEE data
+            "sensor_used": "Offline Demo Simulation (not live satellite data)",
             "cloud_cover_pct": round(2.0 + ((hash_val % 70) / 10.0), 1),
             "pre_ec_date": f"{pre_start} to {pre_end}",
             "post_ec_date": f"{post_start} to {post_end}",
-            "index_computed": "NDBI (Normalized Difference Built-up Index)",
+            "index_computed": "NDBI (Simulated — not computed from real Sentinel bands)",
             "buffer_total_area_m2": round(total_area_m2, 2),
             "change_area_m2": change_area_m2,
             "change_percentage": change_pct,
@@ -268,7 +275,14 @@ class GEEClient:
             "post_ec_thumbnail_url": ndbi_layer["post_thumbnail_url"],
             "change_heatmap_url": ndbi_layer["diff_thumbnail_url"],
             "spectral_layers": spectral_layers,
-            "notes": f"Multi-spectral analysis complete: Riparian corridor of {waterbody_name} altered by {change_area_m2:,.0f} m² hard built-up footprint.",
+            "notes": (
+                f"OFFLINE SIMULATION: No live GEE/Sentinel data was queried. "
+                f"Change value ({change_pct}%) is hash-derived from document metadata, not from real satellite analysis."
+            ) if change_area_m2 > 0 else (
+                f"OFFLINE SIMULATION: No live GEE/Sentinel data was queried. "
+                f"Hash-derived simulation indicates no significant change for this document ({change_pct}%)."
+            ),
+            "analysis_mode": "offline_demo_simulation",
         }
 
     def _generate_all_spectral_layers(

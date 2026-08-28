@@ -43,10 +43,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Enable CORS for local Vite dev server and external frontends
+# Enable CORS for local Vite dev server and external frontends.
+# IMPORTANT: allow_origins=["*"] with allow_credentials=True is a CORS spec violation
+# (browsers reject it). Use an explicit allow-list from CORS_ORIGINS in .env.
+_cors_origins_raw = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000")
+_cors_origins = [o.strip() for o in _cors_origins_raw.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

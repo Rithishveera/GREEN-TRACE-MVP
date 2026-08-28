@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
 
 from db.session import get_session
-from api.dependencies import get_run_or_404
+from api.dependencies import get_run_or_404, require_api_key
 from models.db_models import Run
 from models.schemas import ReviewRequest, RunStatusResponse, AgentResult
 from core.state_machine import RunState
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Human Review Gate"])
 
 
-@router.post("/review", response_model=RunStatusResponse)
+@router.post("/review", response_model=RunStatusResponse, dependencies=[Depends(require_api_key)])
 async def review_and_confirm(
     req: ReviewRequest,
     session: Session = Depends(get_session),

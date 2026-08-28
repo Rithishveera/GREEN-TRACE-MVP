@@ -165,11 +165,31 @@ def generate_dossier_pdf(
     story.append(Spacer(1, 8))
 
     # 3. Mandated Environmental Conditions vs Ground Truth
-    story.append(Paragraph("1. Mandated Clearance Conditions (Agent 1 & Agent 3)", section_heading))
-    
+    story.append(Paragraph("1. Mandated Clearance Conditions (Agent 1 &amp; Agent 3)", section_heading))
+
     conditions = agent1_data.get("conditions", [])
+
+    # Show coordinates_source warning if applicable
+    coord_source = agent1_data.get("coordinates_source", "extracted")
+    if coord_source == "state_inferred":
+        story.append(Paragraph(
+            "<b>⚠ LOCATION WARNING:</b> Project coordinates were not found in the document. "
+            "The geographic centre of the named state/city was used as a proxy location. "
+            "Geospatial results have reduced spatial precision.",
+            ParagraphStyle("WarnStyle", parent=body_style, textColor=colors.HexColor("#d97706"))
+        ))
+        story.append(Spacer(1, 4))
+    elif coord_source == "fabricated_unresolved":
+        story.append(Paragraph(
+            "<b>🔴 BLOCKING: No resolvable project location found.</b> "
+            "Geospatial and satellite analyses were not performed. "
+            "This document was routed to Manual Legal Review.",
+            ParagraphStyle("ErrStyle", parent=body_style, textColor=colors.HexColor("#dc2626"))
+        ))
+        story.append(Spacer(1, 4))
+    
     cond_rows = [
-        [Paragraph("<b>Clause ID</b>", body_bold), Paragraph("<b>Mandated Condition & Spatial Constraint</b>", body_bold), Paragraph("<b>Target Feature</b>", body_bold), Paragraph("<b>Buffer Applied</b>", body_bold)]
+        [Paragraph("<b>Clause ID</b>", body_bold), Paragraph("<b>Mandated Condition &amp; Spatial Constraint</b>", body_bold), Paragraph("<b>Target Feature</b>", body_bold), Paragraph("<b>Buffer Applied</b>", body_bold)]
     ]
     
     for c in conditions[:3]:
@@ -198,42 +218,99 @@ def generate_dossier_pdf(
     story.append(cond_table)
     story.append(Spacer(1, 8))
 
-    # 4. Satellite Spectral Discrepancy Findings (Agent 4)
-    story.append(Paragraph("2. Satellite Ground-Truth & Spectral Delta Analysis (Agent 4)", section_heading))
-    
-    sensor = html.escape(str(agent4_data.get("sensor_used", "Sentinel-2")))
-    cloud = agent4_data.get("cloud_cover_pct", 0.0)
-    pre_date = html.escape(str(agent4_data.get("pre_ec_date", "Pre-EC")))
-    post_date = html.escape(str(agent4_data.get("post_ec_date", "Post-EC")))
-    total_buf_m2 = agent4_data.get("buffer_total_area_m2", 0.0)
-    change_m2 = agent4_data.get("change_area_m2", 0.0)
-    change_pct = agent4_data.get("change_percentage", 0.0)
-    discrepancy = agent4_data.get("discrepancy_detected", False)
+    # 4. Agent 2 — PARIVESH Legal Verification
+    parivesh_status = html.escape(str(agent2_data.get("parivesh_status", "N/A")))
+    amendments = len(agent2_data.get("amendment_history", []))
+    verification_notes = html.escape(str(agent2_data.get("verification_notes", "")))
 
-    sat_summary_data = [
-        [
-            Paragraph("<b>Sensor Platform:</b>", body_bold), Paragraph(sensor, body_style),
-            Paragraph("<b>Cloud Coverage:</b>", body_bold), Paragraph(f"{cloud}% (&lt;20% verified)", body_style),
-        ],
-        [
-            Paragraph("<b>Baseline Interval:</b>", body_bold), Paragraph(pre_date, body_style),
-            Paragraph("<b>Audit Interval:</b>", body_bold), Paragraph(post_date, body_style),
-        ],
-        [
-            Paragraph("<b>Protected Buffer Area:</b>", body_bold), Paragraph(f"{total_buf_m2:,.1f} m²", body_style),
-            Paragraph("<b>Unauthorized Change:</b>", body_bold), Paragraph(f"<font color='{'#dc2626' if discrepancy else '#16a34a'}'><b>{change_m2:,.1f} m² ({change_pct}%)</b></font>", body_bold),
-        ],
-    ]
-    sat_table = Table(sat_summary_data, colWidths=[120, 150, 120, 150])
-    sat_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#f1f5f9")),
-        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
-        ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
-        ('TOPPADDING', (0, 0), (-1, -1), 3),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-    ]))
-    story.append(sat_table)
+    # 5. Satellite Spectral Discrepancy Findings (Agent 4)
+    story.append(Paragraph("2. Satellite Ground-Truth &amp; Spectral Delta Analysis (Agent 4)", section_heading))
+    
+    if not agent4_data or not agent4_data.get("sensor_used"):
+        # Agents 3 & 4 were not run (e.g., routed to MANUAL_LEGAL_REVIEW before geospatial step)
+        story.append(Paragraph(
+            "<b>Geospatial/Satellite Analysis: NOT PERFORMED</b> — "
+            "This document was routed to manual legal review before automated geospatial testing. "
+            "No satellite baseline comparison, NDBI spectral delta, or buffer geometry analysis was conducted.",
+            ParagraphStyle("NotPerformed", parent=body_bold, textColor=colors.HexColor("#dc2626"))
+        ))
+        story.append(Spacer(1, 8))
+    else:
+        analysis_mode = agent4_data.get("analysis_mode", "offline_demo_simulation")
+        mode_label = "[LIVE GEE DATA]" if analysis_mode == "live_gee" else "[SIMULATION — NOT LIVE SATELLITE DATA]"
+        mode_color = "#16a34a" if analysis_mode == "live_gee" else "#dc2626"
+
+        story.append(Paragraph(
+            f"<font color='{mode_color}'><b>{mode_label}</b></font> "
+            "Format validated only. Live registry confirmation of this specific proposal is not yet implemented."
+            if analysis_mode != "live_gee" else
+            f"<font color='{mode_color}'><b>{mode_label}</b></font>",
+            body_style
+        ))
+        story.append(Spacer(1, 4))
+
+        sensor = html.escape(str(agent4_data.get("sensor_used", "Sentinel-2")))
+        cloud = agent4_data.get("cloud_cover_pct", 0.0)
+        pre_date = html.escape(str(agent4_data.get("pre_ec_date", "Pre-EC")))
+        post_date = html.escape(str(agent4_data.get("post_ec_date", "Post-EC")))
+        total_buf_m2 = agent4_data.get("buffer_total_area_m2", 0.0)
+        change_m2 = agent4_data.get("change_area_m2", 0.0)
+        change_pct = agent4_data.get("change_percentage", 0.0)
+        discrepancy = agent4_data.get("discrepancy_detected", False)
+
+        sat_summary_data = [
+            [
+                Paragraph("<b>Sensor Platform:</b>", body_bold), Paragraph(sensor, body_style),
+                Paragraph("<b>Cloud Coverage:</b>", body_bold), Paragraph(f"{cloud}% (&lt;20% verified)", body_style),
+            ],
+            [
+                Paragraph("<b>Baseline Interval:</b>", body_bold), Paragraph(pre_date, body_style),
+                Paragraph("<b>Audit Interval:</b>", body_bold), Paragraph(post_date, body_style),
+            ],
+            [
+                Paragraph("<b>Protected Buffer Area:</b>", body_bold), Paragraph(f"{total_buf_m2:,.1f} m²", body_style),
+                Paragraph("<b>Unauthorized Change:</b>", body_bold), Paragraph(f"<font color='{'#dc2626' if discrepancy else '#16a34a'}'><b>{change_m2:,.1f} m² ({change_pct}%)</b></font>", body_bold),
+            ],
+        ]
+        sat_table = Table(sat_summary_data, colWidths=[120, 150, 120, 150])
+        sat_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#f1f5f9")),
+            ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ]))
+        story.append(sat_table)
+
+        # Simulation disclaimer in the dossier
+        if analysis_mode == "offline_demo_simulation":
+            story.append(Spacer(1, 4))
+            story.append(Paragraph(
+                "<b>SIMULATION NOTICE:</b> The above satellite metrics are derived from an offline hash-based "
+                "simulation and do NOT represent real satellite observations of this specific site. "
+                "Format validated only. Live registry confirmation of this specific proposal is not yet implemented.",
+                ParagraphStyle("SimNote", parent=disclaimer_style, textColor=colors.HexColor("#d97706"))
+            ))
+
     story.append(Spacer(1, 8))
+
+    # PARIVESH verification note in the dossier
+    if agent2_data:
+        story.append(Paragraph("2a. PARIVESH Legal Registry Status (Agent 2)", section_heading))
+        parivesh_status_display = parivesh_status.upper() if parivesh_status else "NOT PERFORMED"
+        parivesh_color = "#16a34a" if parivesh_status == "verified_active" else "#dc2626"
+        story.append(Paragraph(
+            f"Status: <font color='{parivesh_color}'><b>{parivesh_status_display}</b></font> — {verification_notes}",
+            body_style
+        ))
+        story.append(Spacer(1, 8))
+    else:
+        story.append(Paragraph("2a. PARIVESH Legal Registry Status (Agent 2)", section_heading))
+        story.append(Paragraph(
+            "<b>PARIVESH Verification: NOT PERFORMED</b> — Agent 2 did not run for this document.",
+            ParagraphStyle("NotPerformed", parent=body_bold, textColor=colors.HexColor("#dc2626"))
+        ))
+        story.append(Spacer(1, 8))
 
     # 5. Review Gate Verification & Sign-off Box
     story.append(Paragraph("3. Human Verification Gate & Legal Attestation", section_heading))
