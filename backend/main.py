@@ -78,7 +78,29 @@ def health_check():
         "agents": ["agent1_paralegal", "agent2_legal_validator", "agent3_geospatial", "agent4_satellite"],
     }
 
+
+@app.get("/api/gee-status")
+@app.get("/gee-status")
+def gee_status():
+    from services.gee_client import GEEClient
+    client = GEEClient()
+    ready = client.is_ready()
+    return {
+        "status": "ok",
+        "is_ready": ready,
+        "mode": "live_gee" if ready else "offline_demo_simulation",
+        "service_account": client.service_account if ready else None,
+        "project_id": client.project_id if ready else None,
+        "notes": (
+            "Live Google Earth Engine & Sentinel-2 optical change detection is active and ready."
+            if ready else
+            "Google Earth Engine is in offline simulation mode. Key not configured or uninitialized."
+        ),
+    }
+
+
 if __name__ == "__main__":
+
     import uvicorn
     port = int(os.getenv("PORT", 8000))
     host = os.getenv("HOST", "0.0.0.0")

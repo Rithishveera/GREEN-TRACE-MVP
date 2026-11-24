@@ -53,11 +53,22 @@ class GEEClient:
                     self.service_account,
                     key_file=key_path,
                 )
-                ee.Initialize(credentials, project=self.project_id)  # type: ignore[union-attr]
+                try:
+                    if self.project_id:
+                        ee.Initialize(credentials, project=self.project_id)  # type: ignore[union-attr]
+                    else:
+                        ee.Initialize(credentials)  # type: ignore[union-attr]
+                except Exception as proj_err:
+                    logger.info(f"GEE project init note: {proj_err}. Initializing credentials directly...")
+                    ee.Initialize(credentials)  # type: ignore[union-attr]
+
                 self.initialized = True
-                logger.info("GEE initialized with Service Account.")
+                logger.info(f"GEE initialized successfully with Service Account: {self.service_account}")
             else:
-                ee.Initialize(project=self.project_id)  # type: ignore[union-attr]
+                if self.project_id:
+                    ee.Initialize(project=self.project_id)  # type: ignore[union-attr]
+                else:
+                    ee.Initialize()  # type: ignore[union-attr]
                 self.initialized = True
                 logger.info("GEE initialized with default credentials.")
         except Exception as e:
@@ -154,12 +165,51 @@ class GEEClient:
                 ).getInfo() or {}
                 total_area_m2 = float(total_stats.get("area", 10000.0) or 10000.0)
                 
+                # Vectorize detected NDBI change
+                change_geom_geojson = None
+                try:
+                    change_vectors = change_mask.selfMask().reduceToVectors(
+                        geometry=ee_geom,
+                        scale=10,
+                        geometryType="polygon",
+                        eightConnected=False,
+                        labelProperty="change_flag",
+                        maxPixels=int(1e9),
+                    )
+                    change_geom_geojson = change_vectors.getInfo()
+                except Exception as vec_err:
+                    logger.warning(f"Vectorization of change mask failed: {vec_err}")
+                    change_geom_geojson = None
+
+                # Vectorize vegetation loss (NDVI pre - NDVI post > 0.20)
+                veg_loss_geojson = None
+                if "B4" in bands and "B8" in bands:
+                    try:
+                        ndvi_pre = s2_pre.normalizedDifference(["B8", "B4"]).rename("NDVI")
+                        ndvi_post = s2_post.normalizedDifference(["B8", "B4"]).rename("NDVI")
+                        delta_ndvi = ndvi_pre.subtract(ndvi_post).rename("delta_NDVI")
+                        veg_loss_mask = delta_ndvi.gt(0.20).rename("veg_loss")
+                        veg_vectors = veg_loss_mask.selfMask().reduceToVectors(
+                            geometry=ee_geom,
+                            scale=10,
+                            geometryType="polygon",
+                            eightConnected=False,
+                            labelProperty="veg_loss_flag",
+                            maxPixels=int(1e9),
+                        )
+                        veg_loss_geojson = veg_vectors.getInfo()
+                    except Exception as veg_err:
+                        logger.warning(f"Vectorization of vegetation loss failed: {veg_err}")
+                        veg_loss_geojson = None
+
+                # Tightly cropped bounding box for thumbnails
+                thumb_region = ee_geom.bounds()
                 vis_rgb = {"bands": ["B4", "B3", "B2"], "min": 0, "max": 3000, "gamma": 1.4, "dimensions": 512}
-                pre_url = s2_pre.getThumbURL({**vis_rgb, "region": ee_geom})
-                post_url = s2_post.getThumbURL({**vis_rgb, "region": ee_geom})
+                pre_url = s2_pre.getThumbURL({**vis_rgb, "region": thumb_region})
+                post_url = s2_post.getThumbURL({**vis_rgb, "region": thumb_region})
                 
                 change_vis = {"min": 0, "max": 1, "palette": ["00000000", "ff0000"], "dimensions": 512}
-                change_url = change_mask.getThumbURL({**change_vis, "region": ee_geom})
+                change_url = change_mask.getThumbURL({**change_vis, "region": thumb_region})
                 
                 sim_layers = self._generate_all_spectral_layers(
                     ec_date=ec_date,
@@ -187,6 +237,8 @@ class GEEClient:
                     "pre_ec_thumbnail_url": pre_url,
                     "post_ec_thumbnail_url": post_url,
                     "change_heatmap_url": change_url,
+                    "change_geometry_geojson": change_geom_geojson,
+                    "vegetation_loss_geojson": veg_loss_geojson,
                     "spectral_layers": sim_layers,
                     "notes": f"Optical Sentinel-2 spectral analysis completed around {waterbody_name}.",
                     "analysis_mode": "live_gee",
@@ -206,6 +258,7 @@ class GEEClient:
             waterbody_name=waterbody_name,
             buffer_distance_m=buffer_distance_m,
         )
+
 
     def _run_simulation_pipeline(
         self,
@@ -274,6 +327,8 @@ class GEEClient:
             "pre_ec_thumbnail_url": ndbi_layer["pre_thumbnail_url"],
             "post_ec_thumbnail_url": ndbi_layer["post_thumbnail_url"],
             "change_heatmap_url": ndbi_layer["diff_thumbnail_url"],
+            "change_geometry_geojson": None,
+            "vegetation_loss_geojson": None,
             "spectral_layers": spectral_layers,
             "notes": (
                 f"OFFLINE SIMULATION: No live GEE/Sentinel data was queried. "
@@ -284,6 +339,7 @@ class GEEClient:
             ),
             "analysis_mode": "offline_demo_simulation",
         }
+
 
     def _generate_all_spectral_layers(
         self,

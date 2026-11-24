@@ -95,9 +95,13 @@ export interface Agent4Data {
   post_ec_thumbnail_url: string;
   change_heatmap_url?: string;
   spectral_layers?: SpectralLayer[];
+  change_geometry_geojson?: Record<string, any> | null;
+  vegetation_loss_geojson?: Record<string, any> | null;
+
   notes?: string;
   // Provenance tracking: distinguishes live GEE from offline simulation
   analysis_mode: 'live_gee' | 'offline_demo_simulation';
+
 }
 
 

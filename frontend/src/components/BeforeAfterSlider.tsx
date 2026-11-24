@@ -4,6 +4,7 @@ import {
   Globe, ZoomIn, ZoomOut, Crosshair, ExternalLink
 } from 'lucide-react';
 import { Agent4Data, Agent1Data, Agent3Data, RunStatusResponse } from '../types/schemas';
+import { MapLegend } from './MapLegend';
 import L from 'leaflet';
 
 interface Props {
@@ -20,7 +21,7 @@ const SATELLITE_PROVIDERS = [
     name: 'ESRI World Imagery HD',
     badge: 'SUB-METER AERIAL',
     color: '#10b981',
-    description: 'High-resolution true optical aerial and orbital satellite orthophoto showing actual ground clearing and industrial buildings.',
+    description: 'High-resolution optical aerial and orbital satellite orthophoto showing actual ground clearing and industrial buildings.',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     attribution: '© Esri, Maxar, Earthstar Geographics, USDA, USGS',
     maxZoom: 19,
@@ -37,10 +38,10 @@ const SATELLITE_PROVIDERS = [
   },
   {
     id: 'osm',
-    name: 'OpenStreetMap 3D / Topo',
+    name: 'OpenStreetMap Vector / Topo',
     badge: 'VECTOR GROUND TRUTH',
     color: '#f59e0b',
-    description: 'Cartographic vector map with detailed river names, cadastral boundaries, highways, and infrastructure.',
+    description: 'Cartographic vector map with detailed waterbody names, cadastral boundaries, highways, and infrastructure.',
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     attribution: '© OpenStreetMap contributors',
     maxZoom: 19,
@@ -57,36 +58,21 @@ const SATELLITE_PROVIDERS = [
   },
   {
     id: 'carto_dark',
-    // Honest label: this tile source is an ESRI dark-gray cartographic basemap,
-    // NOT actual Sentinel-1 SAR backscatter data.
-    name: 'Dark Reference Basemap (contrast only)',
+    name: 'Dark Reference Basemap',
     badge: 'REFERENCE BASEMAP',
     color: '#a855f7',
-    description: 'ESRI dark-gray cartographic basemap for visual contrast reference — NOT derived from SAR or radar data. Select ESRI World Imagery for real satellite imagery.',
+    description: 'ESRI dark-gray cartographic basemap for visual contrast reference — NOT derived from SAR or radar data.',
     url: 'https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
     attribution: '© Esri, HERE, Garmin, © OpenStreetMap',
     maxZoom: 18,
   },
-  {
-    id: 'nasa_night',
-    // Honest label: raw VIIRS night-lights tiles; no thermal band processing applied.
-    name: 'Nighttime Lights Reference (VIIRS, unprocessed)',
-    badge: 'VIIRS UNPROCESSED',
-    color: '#ec4899',
-    description: 'NASA VIIRS raw night-lights mosaic tiles. No thermal band processing applied — shows light radiance only, not industrial heat signatures.',
-    url: 'https://map1.vis.earthdata.nasa.gov/wmts-webmerc/VIIRS_CityLights_2012/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpg',
-    attribution: '© NASA Global Imagery Browse Services (GIBS)',
-    maxZoom: 8,
-  },
 ];
-
 
 export const BeforeAfterSlider: React.FC<Props> = ({
   agent4Data,
   agent1Data,
   agent3Data,
 }) => {
-  // Determine if we are in simulation mode — this gates what overlays are allowed to show
   const isSimulation = !agent4Data?.analysis_mode || agent4Data.analysis_mode !== 'live_gee';
 
   const [activeProviderId, setActiveProviderId] = useState<string>('esri');
@@ -95,6 +81,7 @@ export const BeforeAfterSlider: React.FC<Props> = ({
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [showBufferOverlay, setShowBufferOverlay] = useState<boolean>(true);
   const [showEncroachmentOverlay, setShowEncroachmentOverlay] = useState<boolean>(true);
+  const [showVegetationOverlay, setShowVegetationOverlay] = useState<boolean>(true);
   const [currentZoom, setCurrentZoom] = useState<number>(15);
 
   // Map DOM Refs
@@ -120,95 +107,157 @@ export const BeforeAfterSlider: React.FC<Props> = ({
   const lon = coords[1] || 75.7042;
   const bufferDist = agent3Data?.buffer_distance_meters || 100;
   const waterbodyName = agent3Data?.waterbody_name || 'Riparian Waterbody';
-  const changeAreaM2 = agent4Data?.change_area_m2 || 3820;
-  const changePct = agent4Data?.change_percentage || 18.5;
+  const changeAreaM2 = agent4Data?.change_area_m2 || 0;
+  const changePct = agent4Data?.change_percentage || 0;
   const projectName = agent1Data?.project_name || 'Environmental Clearance Site';
 
   const activeProvider = SATELLITE_PROVIDERS.find(p => p.id === activeProviderId) || SATELLITE_PROVIDERS[0];
 
-  // Helper: Create custom map marker
+  // Derive tight georeferenced bounding box for composite image overlays
+  const getImageBounds = (): L.LatLngBoundsExpression => {
+    if (agent3Data?.bbox && agent3Data.bbox.length === 4) {
+      const [minLon, minLat, maxLon, maxLat] = agent3Data.bbox;
+      return [[minLat, minLon], [maxLat, maxLon]];
+    }
+    const degOffset = (bufferDist * 3) / 111320;
+    return [
+      [lat - degOffset, lon - degOffset],
+      [lat + degOffset, lon + degOffset],
+    ];
+  };
+
+  // Helper: Create custom pin marker
   const createSiteMarker = (mLat: number, mLon: number) => {
     const customIcon = L.divIcon({
       className: 'custom-map-pin',
       html: `
         <div style="
-          width: 32px; height: 32px; border-radius: 50%;
-          background: rgba(16,185,129,0.95); border: 2px solid #ffffff;
+          width: 28px; height: 28px; border-radius: 4px;
+          background: #1C2A20; border: 2px solid #F1EEE3;
           display: flex; align-items: center; justify-content: center;
-          color: #ffffff; font-weight: bold; font-size: 15px;
-          box-shadow: 0 0 25px rgba(16,185,129,0.8);
-        ">📍</div>
+          color: #F1EEE3; font-weight: bold; font-size: 13px;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        ">§</div>
       `,
-      iconSize: [32, 32],
-      iconAnchor: [16, 16],
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
     });
     return L.marker([mLat, mLon], { icon: customIcon }).bindPopup(`
-      <div style="font-family: sans-serif; color: #0f172a; padding: 4px; max-width: 200px;">
-        <strong style="font-size: 12px; display: block; margin-bottom: 3px;">${projectName}</strong>
-        <span style="font-size: 10px; color: #64748b; font-family: monospace;">${mLat.toFixed(4)}°N, ${mLon.toFixed(4)}°E</span>
+      <div style="font-family: var(--font-sans, sans-serif); color: #1C2A20; padding: 4px; max-width: 220px;">
+        <strong style="font-size: 12px; display: block; margin-bottom: 2px;">${projectName}</strong>
+        <span style="font-size: 10px; color: #4B5D50; font-family: monospace;">${mLat.toFixed(4)}°N, ${mLon.toFixed(4)}°E</span>
       </div>
     `);
   };
 
-  // Helper: Add buffer zone polygon
+  // Helper: Add Waterbody OSM vector geometry
+  const addWaterbodyLayer = (map: L.Map) => {
+    if (agent3Data?.raw_geometry_geojson) {
+      try {
+        L.geoJSON(agent3Data.raw_geometry_geojson as any, {
+          style: {
+            color: '#3b82f6',
+            weight: 2,
+            fillColor: '#3b82f6',
+            fillOpacity: 0.25,
+          },
+        })
+          .bindTooltip(`Protected Waterbody: ${waterbodyName}`, { sticky: true })
+          .addTo(map);
+      } catch (e) {
+        console.warn('Failed to add waterbody geometry:', e);
+      }
+    }
+  };
+
+  // Helper: Add statutory buffer boundary
   const addBufferZone = (map: L.Map) => {
     if (!showBufferOverlay) return;
+    if (agent3Data?.buffered_geometry_geojson) {
+      try {
+        L.geoJSON(agent3Data.buffered_geometry_geojson as any, {
+          style: {
+            color: '#eab308',
+            weight: 2,
+            dashArray: '6, 6',
+            fill: false,
+          },
+        })
+          .bindTooltip(`Statutory ${bufferDist}m Setback Boundary (${waterbodyName})`, { sticky: true })
+          .addTo(map);
+        return;
+      } catch (e) {
+        console.warn('Failed to render buffered_geometry_geojson, falling back to circle', e);
+      }
+    }
+
+    // Fallback circle if vector geometry missing
     L.circle([lat, lon], {
-      radius: bufferDist * 2.8,
+      radius: bufferDist * 1.5,
       color: '#eab308',
       weight: 2,
       dashArray: '6, 6',
-      fillColor: '#eab308',
-      fillOpacity: 0.14,
+      fill: false,
     })
       .bindTooltip(`Mandatory ${bufferDist}m Environmental Buffer Zone`, { sticky: true })
       .addTo(map);
   };
 
-  // Helper: Add encroachment polygon
-  // IMPORTANT: Only rendered when analysis_mode === 'live_gee'.
-  // In simulation mode, the encroachment location and size are NOT derived from
-  // real satellite data, so displaying a red circle would be misleading.
-  const addEncroachmentZone = (map: L.Map) => {
-    if (!showEncroachmentOverlay) return;
-    if (isSimulation) {
-      // In simulation mode, add a clearly-labelled illustrative marker instead
-      const offsetLat = lat + 0.0011;
-      const offsetLon = lon + 0.0014;
-      const illIcon = L.divIcon({
-        className: '',
-        html: `<div style="
-          padding: 4px 8px; border-radius: 6px;
-          background: rgba(245,158,11,0.9); color: #000;
-          font-weight: 800; font-size: 10px; white-space: nowrap;
-          border: 1.5px solid #f59e0b; font-family: sans-serif;
-        ">ILLUSTRATIVE — NOT AN ACTUAL DETECTION</div>`,
-        iconAnchor: [90, 10],
-      });
-      L.marker([offsetLat, offsetLon], { icon: illIcon }).addTo(map);
-      return;
-    }
-    const radius = Math.max(40, Math.sqrt(changeAreaM2 / Math.PI));
+  // Helper: Add real vectorized change detection geometry
+  const addDetectionLayers = (map: L.Map) => {
+    if (!isSimulation && agent4Data) {
+      // 1. Detected unauthorized built-up change polygons (NDBI delta)
+      if (showEncroachmentOverlay && agent4Data.change_geometry_geojson) {
+        try {
+          const features = (agent4Data.change_geometry_geojson as any)?.features || [];
+          if (features.length > 0) {
+            L.geoJSON(agent4Data.change_geometry_geojson as any, {
+              style: {
+                color: '#ef4444',
+                weight: 2,
+                fillColor: '#ef4444',
+                fillOpacity: 0.45,
+              },
+            })
+              .bindPopup(`
+                <div style="font-family: sans-serif; color: #1C2A20; padding: 4px;">
+                  <strong style="color: #ef4444; font-size: 12px;">⚠ Unauthorized Built-up Alteration</strong>
+                  <p style="font-size: 11px; margin: 4px 0 0 0; color: #334155;">
+                    Sentinel-2 Detected Discrepancy: <b>${changeAreaM2.toLocaleString()} m²</b> (${changePct}%)
+                  </p>
+                  <p style="font-size: 10px; margin: 2px 0 0 0; color: #64748b;">
+                    Vectorized inside ${bufferDist}m ${waterbodyName} corridor
+                  </p>
+                </div>
+              `)
+              .addTo(map);
+          }
+        } catch (e) {
+          console.warn('Error adding change_geometry_geojson:', e);
+        }
+      }
 
-    L.circle([lat + 0.0011, lon + 0.0014], {
-      radius,
-      color: '#ef4444',
-      weight: 2,
-      fillColor: '#ef4444',
-      fillOpacity: 0.45,
-    })
-      .bindPopup(`
-        <div style="font-family: sans-serif; color: #0f172a; padding: 4px;">
-          <strong style="color: #ef4444; font-size: 12px;">⚠ Unauthorized Encroachment</strong>
-          <p style="font-size: 11px; margin: 4px 0 0 0; color: #334155;">
-            Detected Built-up: <b>${changeAreaM2.toLocaleString()} m²</b> (${changePct}%)
-          </p>
-          <p style="font-size: 10px; margin: 2px 0 0 0; color: #64748b;">
-            Inside ${bufferDist}m ${waterbodyName} zone
-          </p>
-        </div>
-      `)
-      .addTo(map);
+      // 2. Detected vegetation/canopy loss polygons (NDVI delta)
+      if (showVegetationOverlay && agent4Data.vegetation_loss_geojson) {
+        try {
+          const features = (agent4Data.vegetation_loss_geojson as any)?.features || [];
+          if (features.length > 0) {
+            L.geoJSON(agent4Data.vegetation_loss_geojson as any, {
+              style: {
+                color: '#f59e0b',
+                weight: 2,
+                fillColor: '#f59e0b',
+                fillOpacity: 0.35,
+              },
+            })
+              .bindTooltip('Sentinel-2 Canopy / Vegetation Loss (ΔNDVI > 0.20)', { sticky: true })
+              .addTo(map);
+          }
+        } catch (e) {
+          console.warn('Error adding vegetation_loss_geojson:', e);
+        }
+      }
+    }
   };
 
   // 1. Initialize Dual-Layer Split Slider Maps
@@ -219,7 +268,9 @@ export const BeforeAfterSlider: React.FC<Props> = ({
     if (mapTopInstance.current) { mapTopInstance.current.remove(); mapTopInstance.current = null; }
 
     try {
-      // Bottom Map: Post-EC Satellite with Encroachment & Buffer Overlay
+      const bounds = getImageBounds();
+
+      // Bottom Map: Post-EC Satellite with True RGB Composite + Vector Overlays
       const mapBottom = L.map(mapBottomRef.current, {
         center: [lat, lon],
         zoom: currentZoom,
@@ -227,11 +278,15 @@ export const BeforeAfterSlider: React.FC<Props> = ({
         attributionControl: false,
       });
       L.tileLayer(activeProvider.url, { maxZoom: activeProvider.maxZoom }).addTo(mapBottom);
+      if (agent4Data?.post_ec_thumbnail_url && !isSimulation) {
+        L.imageOverlay(agent4Data.post_ec_thumbnail_url, bounds, { opacity: 0.95 }).addTo(mapBottom);
+      }
       createSiteMarker(lat, lon).addTo(mapBottom);
+      addWaterbodyLayer(mapBottom);
       addBufferZone(mapBottom);
-      addEncroachmentZone(mapBottom);
+      addDetectionLayers(mapBottom);
 
-      // Top Map: Pre-EC Satellite Baseline (Unaltered real satellite tiles)
+      // Top Map: Pre-EC Baseline (True Pre-EC Sentinel-2 Composite)
       const mapTop = L.map(mapTopRef.current, {
         center: [lat, lon],
         zoom: currentZoom,
@@ -239,7 +294,12 @@ export const BeforeAfterSlider: React.FC<Props> = ({
         attributionControl: false,
       });
       L.tileLayer(activeProvider.url, { maxZoom: activeProvider.maxZoom }).addTo(mapTop);
+      if (agent4Data?.pre_ec_thumbnail_url && !isSimulation) {
+        L.imageOverlay(agent4Data.pre_ec_thumbnail_url, bounds, { opacity: 0.95 }).addTo(mapTop);
+      }
       createSiteMarker(lat, lon).addTo(mapTop);
+      addWaterbodyLayer(mapTop);
+      addBufferZone(mapTop);
 
       // Synchronize panning & zooming between top and bottom maps
       let isSyncing = false;
@@ -268,7 +328,7 @@ export const BeforeAfterSlider: React.FC<Props> = ({
       if (mapBottomInstance.current) { mapBottomInstance.current.remove(); mapBottomInstance.current = null; }
       if (mapTopInstance.current) { mapTopInstance.current.remove(); mapTopInstance.current = null; }
     };
-  }, [viewMode, lat, lon, activeProviderId, showBufferOverlay, showEncroachmentOverlay, bufferDist, changeAreaM2]);
+  }, [viewMode, lat, lon, activeProviderId, showBufferOverlay, showEncroachmentOverlay, showVegetationOverlay, bufferDist, changeAreaM2, agent4Data]);
 
   // 2. Initialize Side-by-Side Synchronized Maps
   useEffect(() => {
@@ -278,6 +338,8 @@ export const BeforeAfterSlider: React.FC<Props> = ({
     if (mapSideRightInstance.current) { mapSideRightInstance.current.remove(); mapSideRightInstance.current = null; }
 
     try {
+      const bounds = getImageBounds();
+
       // Left: Pre-EC Baseline
       const mapLeft = L.map(mapSideLeftRef.current, {
         center: [lat, lon],
@@ -286,7 +348,12 @@ export const BeforeAfterSlider: React.FC<Props> = ({
         attributionControl: false,
       });
       L.tileLayer(activeProvider.url, { maxZoom: activeProvider.maxZoom }).addTo(mapLeft);
+      if (agent4Data?.pre_ec_thumbnail_url && !isSimulation) {
+        L.imageOverlay(agent4Data.pre_ec_thumbnail_url, bounds, { opacity: 0.95 }).addTo(mapLeft);
+      }
       createSiteMarker(lat, lon).addTo(mapLeft);
+      addWaterbodyLayer(mapLeft);
+      addBufferZone(mapLeft);
 
       // Right: Post-EC Audit
       const mapRight = L.map(mapSideRightRef.current, {
@@ -296,9 +363,13 @@ export const BeforeAfterSlider: React.FC<Props> = ({
         attributionControl: false,
       });
       L.tileLayer(activeProvider.url, { maxZoom: activeProvider.maxZoom }).addTo(mapRight);
+      if (agent4Data?.post_ec_thumbnail_url && !isSimulation) {
+        L.imageOverlay(agent4Data.post_ec_thumbnail_url, bounds, { opacity: 0.95 }).addTo(mapRight);
+      }
       createSiteMarker(lat, lon).addTo(mapRight);
+      addWaterbodyLayer(mapRight);
       addBufferZone(mapRight);
-      addEncroachmentZone(mapRight);
+      addDetectionLayers(mapRight);
 
       // Sync movement between left and right
       let isSyncing = false;
@@ -327,7 +398,7 @@ export const BeforeAfterSlider: React.FC<Props> = ({
       if (mapSideLeftInstance.current) { mapSideLeftInstance.current.remove(); mapSideLeftInstance.current = null; }
       if (mapSideRightInstance.current) { mapSideRightInstance.current.remove(); mapSideRightInstance.current = null; }
     };
-  }, [viewMode, lat, lon, activeProviderId, showBufferOverlay, showEncroachmentOverlay, bufferDist, changeAreaM2]);
+  }, [viewMode, lat, lon, activeProviderId, showBufferOverlay, showEncroachmentOverlay, showVegetationOverlay, bufferDist, changeAreaM2, agent4Data]);
 
   // 3. Initialize Delta Heatmap Map
   useEffect(() => {
@@ -336,6 +407,7 @@ export const BeforeAfterSlider: React.FC<Props> = ({
     if (mapDiffInstance.current) { mapDiffInstance.current.remove(); mapDiffInstance.current = null; }
 
     try {
+      const bounds = getImageBounds();
       const map = L.map(mapDiffRef.current, {
         center: [lat, lon],
         zoom: currentZoom,
@@ -343,21 +415,16 @@ export const BeforeAfterSlider: React.FC<Props> = ({
         attributionControl: false,
       });
       L.tileLayer(activeProvider.url, { maxZoom: activeProvider.maxZoom }).addTo(map);
-      createSiteMarker(lat, lon).addTo(map);
-      addBufferZone(map);
 
-      // Heatmap glowing circle overlay over real satellite imagery
-      const offsetLat = lat + 0.0011;
-      const offsetLon = lon + 0.0014;
-      L.circle([offsetLat, offsetLon], {
-        radius: Math.max(50, Math.sqrt(changeAreaM2 / Math.PI) * 1.3),
-        color: '#f97316',
-        weight: 3,
-        fillColor: '#ef4444',
-        fillOpacity: 0.65,
-      })
-        .bindTooltip(`ΔNDBI Spectral Disturbance Anomaly (${changeAreaM2.toLocaleString()} m²)`, { sticky: true })
-        .addTo(map);
+      // Add real GEE heatmap thumbnail if available
+      if (agent4Data?.change_heatmap_url && !isSimulation) {
+        L.imageOverlay(agent4Data.change_heatmap_url, bounds, { opacity: 0.85 }).addTo(map);
+      }
+
+      createSiteMarker(lat, lon).addTo(map);
+      addWaterbodyLayer(map);
+      addBufferZone(map);
+      addDetectionLayers(map);
 
       mapDiffInstance.current = map;
     } catch (e) {
@@ -367,9 +434,9 @@ export const BeforeAfterSlider: React.FC<Props> = ({
     return () => {
       if (mapDiffInstance.current) { mapDiffInstance.current.remove(); mapDiffInstance.current = null; }
     };
-  }, [viewMode, lat, lon, activeProviderId, showBufferOverlay, bufferDist, changeAreaM2]);
+  }, [viewMode, lat, lon, activeProviderId, showBufferOverlay, showEncroachmentOverlay, showVegetationOverlay, bufferDist, changeAreaM2, agent4Data]);
 
-  // 4. Initialize 3D Interactive Map
+  // 4. Initialize 3D / Vector Interactive Map
   useEffect(() => {
     if (viewMode !== 'real-map' || !mapInteractiveRef.current) return;
 
@@ -384,8 +451,9 @@ export const BeforeAfterSlider: React.FC<Props> = ({
       });
       L.tileLayer(activeProvider.url, { maxZoom: activeProvider.maxZoom }).addTo(map);
       createSiteMarker(lat, lon).addTo(map);
+      addWaterbodyLayer(map);
       addBufferZone(map);
-      addEncroachmentZone(map);
+      addDetectionLayers(map);
 
       mapInteractiveInstance.current = map;
     } catch (e) {
@@ -395,7 +463,7 @@ export const BeforeAfterSlider: React.FC<Props> = ({
     return () => {
       if (mapInteractiveInstance.current) { mapInteractiveInstance.current.remove(); mapInteractiveInstance.current = null; }
     };
-  }, [viewMode, lat, lon, activeProviderId, showBufferOverlay, showEncroachmentOverlay, bufferDist, changeAreaM2]);
+  }, [viewMode, lat, lon, activeProviderId, showBufferOverlay, showEncroachmentOverlay, showVegetationOverlay, bufferDist, changeAreaM2, agent4Data]);
 
   // Handle global slider drag
   const handleSliderMove = (clientX: number) => {
@@ -426,7 +494,7 @@ export const BeforeAfterSlider: React.FC<Props> = ({
     };
   }, [isDragging]);
 
-  // Zoom control helper
+  // Zoom control helpers
   const handleZoom = (delta: number) => {
     const newZoom = Math.max(12, Math.min(19, currentZoom + delta));
     setCurrentZoom(newZoom);
@@ -448,6 +516,9 @@ export const BeforeAfterSlider: React.FC<Props> = ({
     if (mapDiffInstance.current) mapDiffInstance.current.setView([lat, lon], targetZoom);
     if (mapInteractiveInstance.current) mapInteractiveInstance.current.setView([lat, lon], targetZoom);
   };
+
+  const hasChangeGeometry = !!(agent4Data?.change_geometry_geojson && (agent4Data.change_geometry_geojson as any)?.features?.length > 0);
+  const hasVegetationLoss = !!(agent4Data?.vegetation_loss_geojson && (agent4Data.vegetation_loss_geojson as any)?.features?.length > 0);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -475,6 +546,9 @@ export const BeforeAfterSlider: React.FC<Props> = ({
                 <span className="stamp-chip stamp-chip--pending" style={{ fontSize: '0.65rem' }}>
                   GPS {lat.toFixed(4)}°N, {lon.toFixed(4)}°E
                 </span>
+                <span className={`stamp-chip ${!isSimulation ? 'stamp-chip--confirmed' : 'stamp-chip--warning'}`} style={{ fontSize: '0.65rem' }}>
+                  {!isSimulation ? 'LIVE GEE SENTINEL-2' : 'SIMULATION MODE'}
+                </span>
               </div>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: 2 }}>
                 High-resolution optical orbital tiles and vector terrain registry directly referenced to site coordinates.
@@ -491,7 +565,7 @@ export const BeforeAfterSlider: React.FC<Props> = ({
               { mode: 'slider' as const, label: 'Split Slider', icon: Sliders },
               { mode: 'side-by-side' as const, label: 'Side-by-Side', icon: Maximize2 },
               { mode: 'diff' as const, label: 'Delta Heatmap', icon: Layers },
-              { mode: 'real-map' as const, label: '3D Vector Map', icon: MapIcon },
+              { mode: 'real-map' as const, label: 'Vector Map', icon: MapIcon },
             ].map(({ mode, label, icon: Icon }) => (
               <button
                 key={mode}
@@ -564,7 +638,7 @@ export const BeforeAfterSlider: React.FC<Props> = ({
                 Illustrative simulation overlay only — not derived from live satellite data for this specific location.&nbsp;
               </span>
               <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                The map displays real georeferenced satellite tile imagery for the coordinates, but spectral delta indices and encroachment measurements reflect document metadata simulations.
+                The map displays georeferenced basemap tile imagery for the coordinates, but spectral delta indices reflect document metadata simulations. Live detection polygon vectorization is active only when live GEE credentials are used.
               </span>
             </div>
           </div>
@@ -586,7 +660,7 @@ export const BeforeAfterSlider: React.FC<Props> = ({
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: 'var(--text-primary)', cursor: 'pointer' }}>
             <input
               type="checkbox"
@@ -604,7 +678,17 @@ export const BeforeAfterSlider: React.FC<Props> = ({
               onChange={e => setShowEncroachmentOverlay(e.target.checked)}
               style={{ accentColor: 'var(--status-danger)' }}
             />
-            <span>Encroachment Zone</span>
+            <span>Detected Build-up</span>
+          </label>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: 'var(--text-primary)', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={showVegetationOverlay}
+              onChange={e => setShowVegetationOverlay(e.target.checked)}
+              style={{ accentColor: '#f59e0b' }}
+            />
+            <span>Vegetation Loss</span>
           </label>
         </div>
       </div>
@@ -616,7 +700,7 @@ export const BeforeAfterSlider: React.FC<Props> = ({
         <div
           ref={sliderContainerRef}
           style={{
-            position: 'relative', width: '100%', height: 480,
+            position: 'relative', width: '100%', height: 500,
             borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-medium)',
             background: 'var(--bg-app)', boxShadow: 'var(--shadow-md)',
             userSelect: 'none',
@@ -717,14 +801,14 @@ export const BeforeAfterSlider: React.FC<Props> = ({
             </button>
           </div>
 
-          <div style={{
-            position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 700, pointerEvents: 'none',
-            padding: '3px 10px', borderRadius: 'var(--radius-sm)',
-            background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
-            fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--text-secondary)',
-          }}>
-            Drag divider to compare baseline against current ({sliderPosition}%)
-          </div>
+          {/* Statutory Map Legend */}
+          <MapLegend
+            bufferDist={bufferDist}
+            waterbodyName={waterbodyName}
+            analysisMode={agent4Data?.analysis_mode}
+            hasChangeGeometry={hasChangeGeometry}
+            hasVegetationLoss={hasVegetationLoss}
+          />
         </div>
       )}
 
@@ -736,7 +820,7 @@ export const BeforeAfterSlider: React.FC<Props> = ({
               <span>PRE-EC BASELINE</span>
               <span style={{ color: 'var(--text-muted)' }}>{agent4Data?.pre_ec_date}</span>
             </div>
-            <div style={{ height: 440, borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-medium)', background: 'var(--bg-app)' }}>
+            <div style={{ height: 460, borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-medium)', background: 'var(--bg-app)', position: 'relative' }}>
               <div ref={mapSideLeftRef} style={{ width: '100%', height: '100%' }} />
             </div>
           </div>
@@ -746,8 +830,15 @@ export const BeforeAfterSlider: React.FC<Props> = ({
               <span>POST-EC AUDIT</span>
               <span style={{ color: 'var(--text-muted)' }}>{agent4Data?.post_ec_date}</span>
             </div>
-            <div style={{ height: 440, borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-medium)', background: 'var(--bg-app)' }}>
+            <div style={{ height: 460, borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-medium)', background: 'var(--bg-app)', position: 'relative' }}>
               <div ref={mapSideRightRef} style={{ width: '100%', height: '100%' }} />
+              <MapLegend
+                bufferDist={bufferDist}
+                waterbodyName={waterbodyName}
+                analysisMode={agent4Data?.analysis_mode}
+                hasChangeGeometry={hasChangeGeometry}
+                hasVegetationLoss={hasVegetationLoss}
+              />
             </div>
           </div>
         </div>
@@ -756,44 +847,39 @@ export const BeforeAfterSlider: React.FC<Props> = ({
       {/* 3. Delta Spectral Heatmap Map */}
       {viewMode === 'diff' && (
         <div style={{
-          position: 'relative', width: '100%', height: 480,
+          position: 'relative', width: '100%', height: 500,
           borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-medium)',
           boxShadow: 'var(--shadow-md)', background: 'var(--bg-app)',
         }}>
           <div ref={mapDiffRef} style={{ width: '100%', height: '100%' }} />
-          <div style={{
-            position: 'absolute', bottom: 12, left: 12, right: 12, zIndex: 1000,
-            padding: '8px 14px', borderRadius: 'var(--radius-sm)',
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-medium)',
-            display: 'flex', alignItems: 'center', gap: 10,
-          }}>
-            <div style={{ width: 8, height: 8, borderRadius: 'var(--radius-full)', background: 'var(--status-danger)', flexShrink: 0 }} />
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
-              Red anomaly zones indicate positive NDBI built-up surge exceeding 0.15 threshold inside the {bufferDist}m {waterbodyName} buffer.
-            </span>
-          </div>
+          <MapLegend
+            bufferDist={bufferDist}
+            waterbodyName={waterbodyName}
+            analysisMode={agent4Data?.analysis_mode}
+            hasChangeGeometry={hasChangeGeometry}
+            hasVegetationLoss={hasVegetationLoss}
+          />
         </div>
       )}
 
-      {/* 4. 3D Interactive Map */}
+      {/* 4. 3D / Vector Interactive Map */}
       {viewMode === 'real-map' && (
         <div style={{
-          position: 'relative', width: '100%', height: 480,
+          position: 'relative', width: '100%', height: 500,
           borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-medium)',
           boxShadow: 'var(--shadow-md)', background: 'var(--bg-app)',
         }}>
           <div ref={mapInteractiveRef} style={{ width: '100%', height: '100%' }} />
 
           <div style={{
-            position: 'absolute', bottom: 12, left: 12, zIndex: 1000,
+            position: 'absolute', top: 12, right: 12, zIndex: 1000,
             padding: '6px 12px', borderRadius: 'var(--radius-sm)',
             background: 'var(--bg-surface)',
             border: '1px solid var(--border-medium)',
             fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 8,
           }}>
             <div style={{ width: 6, height: 6, borderRadius: 'var(--radius-full)', background: 'var(--text-primary)' }} />
-            <span>Interactive 3D Earth Layer: <b style={{ color: 'var(--text-primary)' }}>{activeProvider.name}</b></span>
+            <span>Active Layer: <b style={{ color: 'var(--text-primary)' }}>{activeProvider.name}</b></span>
             <span style={{ color: 'var(--border-medium)' }}>|</span>
             <a
               href={`https://www.google.com/maps/@?api=1&map_action=map&center=${lat},${lon}&zoom=16&basemap=satellite`}
@@ -801,10 +887,18 @@ export const BeforeAfterSlider: React.FC<Props> = ({
               rel="noreferrer"
               style={{ color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: 3, textDecoration: 'underline' }}
             >
-              <span>Google 3D Aerial</span>
+              <span>Google Aerial</span>
               <ExternalLink size={10} />
             </a>
           </div>
+
+          <MapLegend
+            bufferDist={bufferDist}
+            waterbodyName={waterbodyName}
+            analysisMode={agent4Data?.analysis_mode}
+            hasChangeGeometry={hasChangeGeometry}
+            hasVegetationLoss={hasVegetationLoss}
+          />
         </div>
       )}
 
@@ -821,13 +915,13 @@ export const BeforeAfterSlider: React.FC<Props> = ({
             label: 'Detected Discrepancy',
             value: `${changeAreaM2.toLocaleString()} m²`,
             color: changeAreaM2 > 0 ? 'var(--status-danger)' : 'var(--status-success)',
-            sub: `${changePct}% buffer encroachment`,
+            sub: `${changePct}% corridor alteration`,
           },
           {
-            label: 'Selected Provider',
-            value: activeProvider.name.split(' ')[0],
+            label: 'Sensor / Source',
+            value: !isSimulation ? 'Sentinel-2 MSI' : 'Simulation Engine',
             color: 'var(--text-primary)',
-            sub: activeProvider.badge,
+            sub: !isSimulation ? 'Live Copernicus GEE' : 'Offline demo mode',
           },
           {
             label: 'GPS Coordinates',
@@ -858,4 +952,3 @@ export const BeforeAfterSlider: React.FC<Props> = ({
     </div>
   );
 };
-

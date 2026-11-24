@@ -49,8 +49,9 @@ async def run_agent4_satellite(
         change_percentage=sat_output.get("change_percentage", 0.0),
         discrepancy_detected=sat_output.get("discrepancy_detected", False),
         pre_ec_thumbnail_url=sat_output.get("pre_ec_thumbnail_url", ""),
-        post_ec_thumbnail_url=sat_output.get("post_ec_thumbnail_url", ""),
         change_heatmap_url=sat_output.get("change_heatmap_url", ""),
+        change_geometry_geojson=sat_output.get("change_geometry_geojson"),
+        vegetation_loss_geojson=sat_output.get("vegetation_loss_geojson"),
         notes=sat_output.get("notes", ""),
         analysis_mode=sat_output.get("analysis_mode", "offline_demo_simulation"),
     )

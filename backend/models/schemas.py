@@ -77,9 +77,12 @@ class Agent4Data(BaseModel):
     post_ec_thumbnail_url: str = ""
     change_heatmap_url: Optional[str] = ""
     spectral_layers: Optional[List[Dict[str, Any]]] = Field(default_factory=list)
+    change_geometry_geojson: Optional[Dict[str, Any]] = None
+    vegetation_loss_geojson: Optional[Dict[str, Any]] = None
     notes: Optional[str] = None
     # Provenance tracking: distinguishes live GEE results from offline simulation
     analysis_mode: Literal["live_gee", "offline_demo_simulation"] = "offline_demo_simulation"
+
 
 
 
