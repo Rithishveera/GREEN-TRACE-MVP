@@ -589,7 +589,7 @@ export const BeforeAfterSlider: React.FC<Props> = ({
         </div>
 
         {/* Satellite Provider Selection (Ledger Index Tabs) */}
-        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+        <div className="horizontal-scroll-bar">
           {SATELLITE_PROVIDERS.map(p => {
             const isSelected = p.id === activeProviderId;
             return (
@@ -699,12 +699,7 @@ export const BeforeAfterSlider: React.FC<Props> = ({
       {viewMode === 'slider' && (
         <div
           ref={sliderContainerRef}
-          style={{
-            position: 'relative', width: '100%', height: 500,
-            borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-medium)',
-            background: 'var(--bg-app)', boxShadow: 'var(--shadow-md)',
-            userSelect: 'none',
-          }}
+          className="map-canvas-container"
         >
           {/* Bottom Layer: Post-EC Satellite with Encroachment & Buffer */}
           <div ref={mapBottomRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
@@ -814,13 +809,13 @@ export const BeforeAfterSlider: React.FC<Props> = ({
 
       {/* 2. Side-by-Side Synchronized Real Satellite Maps */}
       {viewMode === 'side-by-side' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div className="side-by-side-grid">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-primary)', padding: '0 2px' }}>
               <span>PRE-EC BASELINE</span>
               <span style={{ color: 'var(--text-muted)' }}>{agent4Data?.pre_ec_date}</span>
             </div>
-            <div style={{ height: 460, borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-medium)', background: 'var(--bg-app)', position: 'relative' }}>
+            <div className="side-by-side-map-item">
               <div ref={mapSideLeftRef} style={{ width: '100%', height: '100%' }} />
             </div>
           </div>
@@ -830,7 +825,7 @@ export const BeforeAfterSlider: React.FC<Props> = ({
               <span>POST-EC AUDIT</span>
               <span style={{ color: 'var(--text-muted)' }}>{agent4Data?.post_ec_date}</span>
             </div>
-            <div style={{ height: 460, borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-medium)', background: 'var(--bg-app)', position: 'relative' }}>
+            <div className="side-by-side-map-item">
               <div ref={mapSideRightRef} style={{ width: '100%', height: '100%' }} />
               <MapLegend
                 bufferDist={bufferDist}
@@ -846,11 +841,7 @@ export const BeforeAfterSlider: React.FC<Props> = ({
 
       {/* 3. Delta Spectral Heatmap Map */}
       {viewMode === 'diff' && (
-        <div style={{
-          position: 'relative', width: '100%', height: 500,
-          borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-medium)',
-          boxShadow: 'var(--shadow-md)', background: 'var(--bg-app)',
-        }}>
+        <div className="map-canvas-container">
           <div ref={mapDiffRef} style={{ width: '100%', height: '100%' }} />
           <MapLegend
             bufferDist={bufferDist}
@@ -864,11 +855,7 @@ export const BeforeAfterSlider: React.FC<Props> = ({
 
       {/* 4. 3D / Vector Interactive Map */}
       {viewMode === 'real-map' && (
-        <div style={{
-          position: 'relative', width: '100%', height: 500,
-          borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-medium)',
-          boxShadow: 'var(--shadow-md)', background: 'var(--bg-app)',
-        }}>
+        <div className="map-canvas-container">
           <div ref={mapInteractiveRef} style={{ width: '100%', height: '100%' }} />
 
           <div style={{

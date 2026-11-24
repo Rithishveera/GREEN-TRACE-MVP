@@ -107,7 +107,7 @@ export const DossierPage: React.FC<Props> = ({ status, onBack }) => {
 
       {/* ── PDF Container ── */}
       <div style={{
-        width: '100%', height: '800px', borderRadius: 'var(--radius-md)',
+        width: '100%', height: 'clamp(380px, 65vh, 800px)', borderRadius: 'var(--radius-md)',
         overflow: 'hidden', border: '1px solid var(--border-medium)',
         background: 'var(--bg-surface)', boxShadow: 'var(--shadow-md)',
         position: 'relative',

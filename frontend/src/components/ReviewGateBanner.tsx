@@ -75,15 +75,9 @@ export const ReviewGateBanner: React.FC<Props> = ({ status, onReviewConfirmed, o
   /* ── Already Sealed & Attested (Official Stamp Presentation) ── */
   if (isSealed) {
     return (
-      <div style={{
-        padding: '28px 32px',
-        borderRadius: 'var(--radius-md)',
-        background: 'var(--bg-card)',
-        border: '2px solid var(--border-medium)',
-        boxShadow: 'var(--shadow-md)',
-      }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 24, alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+      <div className="review-gate-banner">
+        <div className="review-gate-inner">
+          <div className="review-gate-stamp-group">
             {/* Signature Official Stamp Component */}
             <div className="stamp stamp--confirmed stamp--just-confirmed">
               <span style={{ fontSize: '0.62rem', letterSpacing: '0.1em' }}>ATTESTED</span>

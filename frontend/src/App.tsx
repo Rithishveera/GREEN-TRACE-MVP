@@ -21,26 +21,20 @@ const LandingPage: React.FC<{ onEnter: () => void }> = ({ onEnter }) => {
       padding: '40px 24px',
     }}>
       {/* Outer Paper Border Ledger Frame */}
-      <div style={{
-        position: 'relative',
-        zIndex: 10,
-        textAlign: 'center',
-        maxWidth: 760,
-        width: '100%',
-        padding: '56px 40px',
-        background: 'var(--bg-surface)',
-        border: '2px solid var(--border-medium)',
-        borderRadius: 'var(--radius-md)',
-        boxShadow: 'var(--shadow-lg)',
-        opacity: mounted ? 1 : 0,
-        transform: mounted ? 'translateY(0)' : 'translateY(16px)',
-        transition: 'all 0.4s ease-out',
-      }}>
+      <div
+        className="landing-card-frame"
+        style={{
+          opacity: mounted ? 1 : 0,
+          transform: mounted ? 'translateY(0)' : 'translateY(16px)',
+        }}
+      >
         {/* Top Gazette Header Rule */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 8,
           borderBottom: '1px solid var(--border-medium)',
           paddingBottom: 14,
           marginBottom: 36,
@@ -237,12 +231,7 @@ export const App: React.FC = () => {
         background: 'var(--bg-surface)',
         boxShadow: 'var(--shadow-sm)',
       }}>
-        <div style={{
-          maxWidth: 1280, margin: '0 auto',
-          padding: '0 24px',
-          height: 64,
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
+        <div className="app-header-inner">
           {/* Official Registry Logo */}
           <button
             onClick={() => { setCurrentRunId(null); }}
@@ -260,6 +249,7 @@ export const App: React.FC = () => {
               background: 'var(--bg-surface-elevated)',
               border: '1px solid var(--border-medium)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
             }}>
               <Scale size={18} style={{ color: 'var(--text-primary)' }} />
             </div>
@@ -273,22 +263,23 @@ export const App: React.FC = () => {
               }}>
                 GreenTrace <span style={{ fontFamily: 'var(--font-sans)', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Ledger</span>
               </div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+              <div className="hidden-mobile" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                 Statutory Evidence Registry
               </div>
             </div>
           </button>
 
           {/* Right controls */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {currentRunId && (
               <button
                 onClick={() => setCurrentRunId(null)}
                 className="btn-secondary"
-                style={{ fontSize: '0.8rem', padding: '6px 14px' }}
+                style={{ fontSize: '0.8rem', padding: '6px 12px' }}
+                title="New Clearance Audit"
               >
                 <Plus size={14} style={{ color: 'var(--text-primary)' }} />
-                New Clearance Audit
+                <span className="hidden-mobile">New Audit</span>
               </button>
             )}
 
@@ -297,10 +288,11 @@ export const App: React.FC = () => {
               <button
                 onClick={() => { setShowHistory(v => !v); loadHistory(); }}
                 className="btn-secondary"
-                style={{ fontSize: '0.8rem', padding: '6px 14px', gap: 8 }}
+                style={{ fontSize: '0.8rem', padding: '6px 12px', gap: 6 }}
+                title="Archived Case Files"
               >
                 <History size={14} style={{ color: 'var(--text-secondary)' }} />
-                <span>Case Registry</span>
+                <span className="hidden-mobile">Case Registry</span>
                 <span style={{
                   fontFamily: 'var(--font-mono)',
                   fontSize: '0.68rem', fontWeight: 700,
@@ -311,17 +303,7 @@ export const App: React.FC = () => {
               </button>
 
               {showHistory && (
-                <div style={{
-                  position: 'absolute', right: 0, top: 'calc(100% + 8px)',
-                  width: 380, maxHeight: 480, overflowY: 'auto',
-                  background: 'var(--bg-surface)',
-                  border: '1px solid var(--border-medium)',
-                  borderRadius: 'var(--radius-md)',
-                  boxShadow: 'var(--shadow-lg)',
-                  zIndex: 200,
-                  animation: 'fadeInUp 0.2s ease',
-                  transformOrigin: 'top right',
-                }}>
+                <div className="history-dropdown">
                   <div style={{ padding: '14px 14px 10px', borderBottom: '1px solid var(--border-subtle)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
@@ -399,7 +381,7 @@ export const App: React.FC = () => {
       </header>
 
       {/* ── Main Content Area ── */}
-      <main style={{ flex: 1, maxWidth: 1280, width: '100%', margin: '0 auto', padding: '36px 24px' }}>
+      <main className="app-main-content">
         {currentRunId ? (
           <DraftReviewPage
             runId={currentRunId}
@@ -468,7 +450,7 @@ const UploadDashboard: React.FC<{
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 32, alignItems: 'start' }}>
+      <div className="dashboard-grid">
         {/* Left: Ingestion + Agent Architecture */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
           {/* Upload Zone Card */}
@@ -481,7 +463,7 @@ const UploadDashboard: React.FC<{
                 Audit Sequence — 4 Autonomous Folios
               </span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="pipeline-cards-grid">
               {pipeline.map((step) => (
                 <div
                   key={step.num}

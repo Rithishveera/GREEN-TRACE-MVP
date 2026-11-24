@@ -170,12 +170,7 @@ export const DraftReviewPage: React.FC<Props> = ({ runId, onBackToUpload }) => {
       </div>
 
       {/* ── Folio Tabs (Ledger Index Style) ── */}
-      <div style={{
-        display: 'flex', gap: 4, marginBottom: 28,
-        background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-sm)',
-        padding: 4, border: '1px solid var(--border-medium)',
-        width: 'fit-content',
-      }}>
+      <div className="responsive-tabs">
         {sections.map(({ key, folio, label, icon: Icon, available }) => {
           const isActiveTab = activeSection === key;
           return (

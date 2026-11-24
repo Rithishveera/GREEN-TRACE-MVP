@@ -273,3 +273,238 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
   margin: 16px 0;
 }
 
+/* ── Dynamic Responsive System (Desktop & Mobile) ────────── */
+
+/* App Header */
+.app-header-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Main Content Container */
+.app-main-content {
+  flex: 1;
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 36px 24px;
+}
+
+/* Landing Page Frame */
+.landing-card-frame {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  max-width: 760px;
+  width: 100%;
+  padding: 56px 40px;
+  background: var(--bg-surface);
+  border: 2px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  transition: all 0.4s ease-out;
+}
+
+/* Upload Dashboard Grids */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 32px;
+  align-items: start;
+}
+
+.pipeline-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* History Dropdown */
+.history-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  max-height: 480px;
+  overflow-y: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 200;
+  animation: fadeInUp 0.2s ease;
+  transform-origin: top right;
+}
+
+/* Swipeable Folio Tab Bar for Mobile & Desktop */
+.responsive-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  background: var(--bg-surface-elevated);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  border: 1px solid var(--border-medium);
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.responsive-tabs::-webkit-scrollbar {
+  display: none;
+}
+.responsive-tabs > button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Map Canvas Container */
+.map-canvas-container {
+  position: relative;
+  width: 100%;
+  height: clamp(340px, 55vh, 520px);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-app);
+  box-shadow: var(--shadow-md);
+  user-select: none;
+}
+
+/* Side by side maps grid */
+.side-by-side-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.side-by-side-map-item {
+  height: clamp(280px, 45vh, 460px);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-app);
+  position: relative;
+}
+
+/* Horizontal Swipe Scroller for satellite provider tabs */
+.horizontal-scroll-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+}
+
+/* Review gate responsive layout */
+.review-gate-banner {
+  padding: 28px 32px;
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  border: 2px solid var(--border-medium);
+  box-shadow: var(--shadow-md);
+}
+
+.review-gate-inner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+}
+
+.review-gate-stamp-group {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+/* Utility hide on mobile */
+.hidden-mobile {
+  display: inline;
+}
+
+/* ── Tablet Breakpoint (max-width: 1024px) ───────────── */
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+/* ── Mobile Breakpoint (max-width: 768px) ────────────── */
+@media (max-width: 768px) {
+  .app-header-inner {
+    padding: 10px 16px;
+    min-height: 56px;
+  }
+
+  .app-main-content {
+    padding: 20px 14px;
+  }
+
+  .landing-card-frame {
+    padding: 36px 20px;
+  }
+
+  .case-file {
+    border-left: 2px dashed var(--border-medium);
+    padding-left: 14px;
+  }
+  .case-file::before {
+    display: none;
+  }
+
+  .side-by-side-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .review-gate-banner {
+    padding: 20px 16px;
+  }
+}
+
+/* ── Small Mobile (max-width: 640px) ─────────────────── */
+@media (max-width: 640px) {
+  .pipeline-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hidden-mobile {
+    display: none !important;
+  }
+
+  .history-dropdown {
+    width: calc(100vw - 20px);
+    right: -8px;
+    max-height: 70vh;
+  }
+
+  .stamp {
+    width: 82px;
+    height: 82px;
+    font-size: 0.6rem;
+  }
+
+  .btn-primary, .btn-secondary {
+    padding: 0.55rem 0.95rem;
+    font-size: 0.8rem;
+  }
+
+  .map-canvas-container {
+    height: 330px;
+  }
+}
+
+
