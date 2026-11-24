@@ -1,6 +1,7 @@
 import { IngestResponse, RunStatusResponse, ReviewRequest } from '../types/schemas';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const rawBase = import.meta.env.VITE_API_BASE_URL || '';
+const API_BASE = rawBase.replace(/\/+$/, '');
 
 export async function ingestPdf(file: File): Promise<IngestResponse> {
   const formData = new FormData();
